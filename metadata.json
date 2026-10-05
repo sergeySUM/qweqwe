@@ -1,0 +1,6 @@
+{
+  "name": "MediCore - Sistema de Gestión Hospitalaria",
+  "description": "Sistema integral de gestión clínica y hospitalaria con soporte para Pacientes, Recepcionistas, Médicos y Administradores.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
