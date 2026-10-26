@@ -9,6 +9,9 @@ export interface User {
   phone: string;
   status: 'ACTIVO' | 'SUSPENDIDO';
   createdAt: string;
+  photoURL?: string;
+  authProvider?: 'google' | 'local';
+  googleUid?: string;
   // Campos específicos de Paciente
   address?: string;
   birthDate?: string;

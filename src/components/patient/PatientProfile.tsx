@@ -79,6 +79,36 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient }) => {
         )}
       </div>
 
+        {/* Google Account Status Badge if authenticated via Google */}
+        {patient.authProvider === 'google' && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              {patient.photoURL ? (
+                <img
+                  src={patient.photoURL}
+                  alt={patient.name}
+                  className="w-10 h-10 rounded-full border border-emerald-300 object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold">
+                  G
+                </div>
+              )}
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-emerald-950 text-sm">
+                  <span>Cuenta vinculada con Google</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <span className="text-slate-600 font-mono text-[11px]">{patient.email}</span>
+              </div>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+              Autenticado
+            </span>
+          </div>
+        )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Section 1: Datos Personales */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
