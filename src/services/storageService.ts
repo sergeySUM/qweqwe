@@ -55,7 +55,7 @@ class HospitalStorageService {
   private payments: PaymentTransaction[] = [];
   private auditLogs: AuditLog[] = [];
   private settings: ClinicSettings = INITIAL_CLINIC_SETTINGS;
-  private activeUserId: string = 'user-doc-1'; // Default: Dr. Morales for instant review
+  private activeUserId: string | null = null; // Requiere autenticación
   private listeners: Set<() => void> = new Set();
 
   constructor() {
@@ -76,8 +76,16 @@ class HospitalStorageService {
     this.settings = this.load(STORAGE_KEYS.SETTINGS, INITIAL_CLINIC_SETTINGS);
     
     const storedActiveUser = localStorage.getItem(STORAGE_KEYS.ACTIVE_USER);
-    if (storedActiveUser && this.users.find(u => u.id === storedActiveUser)) {
-      this.activeUserId = storedActiveUser;
+    if (storedActiveUser) {
+      const user = this.users.find(u => u.id === storedActiveUser);
+      if (user && user.status === 'ACTIVO') {
+        this.activeUserId = storedActiveUser;
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
+        this.activeUserId = null;
+      }
+    } else {
+      this.activeUserId = null;
     }
   }
 
@@ -120,25 +128,54 @@ class HospitalStorageService {
     return () => this.listeners.delete(listener);
   }
 
-  // --- Active Session Management ---
-  public getActiveUser(): User {
-    const user = this.users.find(u => u.id === this.activeUserId);
-    return user || this.users[0];
+  // --- Active Session Management & Access Control ---
+  public getActiveUser(): User | null {
+    if (!this.activeUserId) return null;
+    return this.users.find(u => u.id === this.activeUserId) || null;
   }
 
-  public setActiveUserId(userId: string) {
+  public isAuthenticated(): boolean {
+    const user = this.getActiveUser();
+    return Boolean(user && user.status === 'ACTIVO');
+  }
+
+  public setActiveUserId(userId: string): { success: boolean; error?: string; user?: User } {
     const user = this.users.find(u => u.id === userId);
-    if (user) {
-      this.activeUserId = userId;
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, userId);
+    if (!user) {
+      return { success: false, error: 'Usuario no registrado en el sistema.' };
+    }
+    if (user.status === 'SUSPENDIDO') {
+      return { 
+        success: false, 
+        error: 'ACCESO DENEGADO: Su cuenta se encuentra suspendida por la Dirección Médica.' 
+      };
+    }
+
+    this.activeUserId = userId;
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, userId);
+    this.addAuditLog({
+      action: 'LOGIN',
+      resourceType: 'SISTEMA',
+      resourceId: `session-${Date.now()}`,
+      details: `Inicio de sesión autorizado: ${user.name} [Rol: ${user.role}]`
+    });
+    this.notify();
+    return { success: true, user };
+  }
+
+  public logout() {
+    if (this.activeUserId) {
+      const user = this.getActiveUser();
       this.addAuditLog({
         action: 'LOGIN',
         resourceType: 'SISTEMA',
-        resourceId: `session-${Date.now()}`,
-        details: `Cambio de sesión activa a ${user.name} (${user.role})`
+        resourceId: `logout-${Date.now()}`,
+        details: `Cierre de sesión de ${user?.name || 'Usuario'}`
       });
-      this.notify();
     }
+    this.activeUserId = null;
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
+    this.notify();
   }
 
   // --- RF-12: Auditoría Centralizada ---
@@ -153,9 +190,9 @@ class HospitalStorageService {
     const newLog: AuditLog = {
       id: `aud-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       timestamp: new Date().toISOString(),
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userRole: currentUser.role,
+      userId: currentUser ? currentUser.id : 'anon',
+      userName: currentUser ? currentUser.name : 'Usuario no autenticado',
+      userRole: currentUser ? currentUser.role : 'PACIENTE',
       action: params.action,
       resourceType: params.resourceType,
       resourceId: params.resourceId,

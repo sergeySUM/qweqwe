@@ -157,6 +157,17 @@ export const INITIAL_USERS: User[] = [
     insuranceName: 'Galeno Azul',
     insuranceNumber: 'GA-771239-01',
     billingCuit: '27-42567890-3'
+  },
+  {
+    id: 'user-susp-1',
+    email: 'carlos.valenzuela@susp.com',
+    name: 'Carlos Valenzuela (Suspendido)',
+    role: 'PACIENTE',
+    dni: '18999888',
+    phone: '+54 11 0000-9999',
+    status: 'SUSPENDIDO',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    insuranceName: 'Particular / Privado'
   }
 ];
 

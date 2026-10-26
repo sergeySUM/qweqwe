@@ -24,9 +24,10 @@ import { DoctorScheduleConfig } from './components/doctor/DoctorScheduleConfig';
 import { UserManagement } from './components/admin/UserManagement';
 import { AuditLogsViewer } from './components/admin/AuditLogsViewer';
 import { GeneralSettings } from './components/admin/GeneralSettings';
+import { LoginGate } from './components/auth/LoginGate';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<User>(() => storageService.getActiveUser());
+  const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getActiveUser());
   const [activeTab, setActiveTab] = useState<string>('rf07');
   const [targetPatientId, setTargetPatientId] = useState<string | undefined>(undefined);
 
@@ -41,11 +42,16 @@ export default function App() {
 
   // Set default tab when role changes
   const handleSelectRole = (newRole: UserRole) => {
-    const users = storageService.getUsers();
-    const firstUserWithRole = users.find(u => u.role === newRole && u.status === 'ACTIVO');
-    if (firstUserWithRole) {
-      storageService.setActiveUserId(firstUserWithRole.id);
-      setCurrentUser(firstUserWithRole);
+    if (!currentUser) return;
+    
+    // Only Admin can freely switch active user across all roles
+    if (currentUser.role === 'ADMINISTRADOR') {
+      const users = storageService.getUsers();
+      const firstUserWithRole = users.find(u => u.role === newRole && u.status === 'ACTIVO');
+      if (firstUserWithRole) {
+        storageService.setActiveUserId(firstUserWithRole.id);
+        setCurrentUser(firstUserWithRole);
+      }
     }
 
     switch (newRole) {
@@ -64,8 +70,9 @@ export default function App() {
     }
   };
 
-  // Sync active tab if currentUser role changes from dropdown
+  // Sync active tab if currentUser role changes
   useEffect(() => {
+    if (!currentUser) return;
     if (currentUser.role === 'PACIENTE' && !['rf01', 'rf02', 'rf03'].includes(activeTab)) {
       setActiveTab('rf02');
     } else if (currentUser.role === 'RECEPCIONISTA' && !['rf04', 'rf05', 'rf06'].includes(activeTab)) {
@@ -75,7 +82,22 @@ export default function App() {
     } else if (currentUser.role === 'ADMINISTRADOR' && !['rf11', 'rf12', 'rf13'].includes(activeTab)) {
       setActiveTab('rf11');
     }
-  }, [currentUser.role, activeTab]);
+  }, [currentUser?.role, activeTab]);
+
+  // Si no está autenticado o la cuenta está suspendida, mostrar pantalla de bloqueo y acceso autorizado
+  if (!currentUser || currentUser.status !== 'ACTIVO') {
+    return (
+      <LoginGate
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          if (user.role === 'PACIENTE') setActiveTab('rf02');
+          else if (user.role === 'RECEPCIONISTA') setActiveTab('rf04');
+          else if (user.role === 'MEDICO') setActiveTab('rf07');
+          else setActiveTab('rf11');
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
