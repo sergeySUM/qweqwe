@@ -23,7 +23,18 @@ export const INITIAL_SPECIALTIES: Specialty[] = [
 ];
 
 export const INITIAL_USERS: User[] = [
-  // Administrador
+  // Administradores
+  {
+    id: 'user-admin-seter',
+    email: 'seter7712@gmail.com',
+    name: 'Seter (Administrador Principal)',
+    role: 'ADMINISTRADOR',
+    dni: '28771200',
+    phone: '+54 11 9988-7712',
+    status: 'ACTIVO',
+    authProvider: 'google',
+    createdAt: '2025-01-01T08:00:00.000Z'
+  },
   {
     id: 'user-admin-1',
     email: 'admin@medicore.com',

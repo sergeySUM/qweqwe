@@ -288,15 +288,18 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
               </button>
 
               {/* Fast track with Google account */}
-              <div className="pt-2 border-t border-slate-100 text-center">
+              <div className="pt-2 border-t border-slate-100 text-center space-y-1.5">
                 <button
                   type="button"
                   onClick={() => handleAssistedGoogleSignIn('seter7712@gmail.com')}
-                  className="w-full py-2 px-3 bg-cyan-50 hover:bg-cyan-100 text-cyan-900 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  className="w-full py-2.5 px-3 bg-cyan-700 hover:bg-cyan-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-700" />
-                  <span>Acceso directo con seter7712@gmail.com</span>
+                  <Sparkles className="w-4 h-4 text-cyan-200" />
+                  <span>Acceso Inmediato: seter7712@gmail.com (Administrador)</span>
                 </button>
+                <p className="text-[10px] text-slate-500">
+                  Autenticación directa con privilegios de Administrador y Matriz de Derechos.
+                </p>
               </div>
             </div>
           )}
@@ -312,7 +315,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
                   <input
                     type="text"
                     required
-                    placeholder="ej. dr.morales@medicore.com o DNI"
+                    placeholder="ej. seter7712@gmail.com o DNI"
                     value={credentialEmail}
                     onChange={e => setCredentialEmail(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-cyan-600 focus:outline-hidden"
@@ -346,6 +349,17 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
                 <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   Acceso Rápido de Demostración:
                 </span>
+                
+                {/* Highlight Seter Admin */}
+                <button
+                  type="button"
+                  onClick={() => handleQuickPersonaLogin('user-admin-seter')}
+                  className="w-full p-2 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-md text-left font-bold text-cyan-900 cursor-pointer flex items-center justify-between"
+                >
+                  <span className="truncate">seter7712@gmail.com (Administrador Principal)</span>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-cyan-700 text-white rounded font-mono">ADMIN</span>
+                </button>
+
                 <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                   <button
                     type="button"

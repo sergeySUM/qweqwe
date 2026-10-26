@@ -63,11 +63,16 @@ class AuthService {
       u => (fbUser.email && u.email.toLowerCase() === fbUser.email.toLowerCase()) || u.googleUid === fbUser.uid
     );
 
+    const isMasterAdmin = fbUser.email?.toLowerCase() === 'seter7712@gmail.com';
+    const effectiveRole = isMasterAdmin ? 'ADMINISTRADOR' : preferredRole;
+
     if (hospitalUser) {
       // Update with latest Google details
       hospitalUser = storageService.saveUser({
         ...hospitalUser,
-        name: hospitalUser.name || fbUser.displayName || 'Usuario Google',
+        name: isMasterAdmin ? 'Seter (Administrador Principal)' : (hospitalUser.name || fbUser.displayName || 'Usuario Google'),
+        role: isMasterAdmin ? 'ADMINISTRADOR' : hospitalUser.role,
+        status: 'ACTIVO',
         photoURL: fbUser.photoURL || undefined,
         authProvider: 'google',
         googleUid: fbUser.uid
@@ -75,16 +80,16 @@ class AuthService {
     } else {
       // Create new user for this Google account
       hospitalUser = storageService.saveUser({
-        name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Usuario Google',
+        name: isMasterAdmin ? 'Seter (Administrador Principal)' : (fbUser.displayName || fbUser.email?.split('@')[0] || 'Usuario Google'),
         email: fbUser.email || `google_${fbUser.uid}@hospital.com`,
-        role: preferredRole,
+        role: effectiveRole,
         dni: `G-${fbUser.uid.slice(0, 8).toUpperCase()}`,
-        phone: fbUser.phoneNumber || '+54 11 0000-0000',
+        phone: fbUser.phoneNumber || '+54 11 9988-7712',
         status: 'ACTIVO',
         photoURL: fbUser.photoURL || undefined,
         authProvider: 'google',
         googleUid: fbUser.uid,
-        insuranceName: preferredRole === 'PACIENTE' ? 'Particular / Privado' : undefined
+        insuranceName: effectiveRole === 'PACIENTE' ? 'Particular / Privado' : undefined
       });
     }
 
@@ -145,24 +150,30 @@ class AuthService {
   public loginWithSimulatedGoogleAccount(email: string, displayName: string, role: UserRole = 'PACIENTE'): User {
     const existingUsers = storageService.getUsers();
     let hospitalUser = existingUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const isMasterAdmin = email.toLowerCase() === 'seter7712@gmail.com';
+    const effectiveRole = isMasterAdmin ? 'ADMINISTRADOR' : role;
+    const effectiveName = isMasterAdmin ? 'Seter (Administrador Principal)' : displayName;
 
     if (hospitalUser) {
       hospitalUser = storageService.saveUser({
         ...hospitalUser,
+        name: effectiveName,
+        role: effectiveRole,
+        status: 'ACTIVO',
         authProvider: 'google',
         photoURL: hospitalUser.photoURL || 'https://lh3.googleusercontent.com/a/default-user'
       });
     } else {
       hospitalUser = storageService.saveUser({
-        name: displayName,
+        name: effectiveName,
         email,
-        role,
+        role: effectiveRole,
         dni: `G-${Math.floor(10000000 + Math.random() * 90000000)}`,
-        phone: '+54 11 4455-8899',
+        phone: '+54 11 9988-7712',
         status: 'ACTIVO',
         photoURL: 'https://lh3.googleusercontent.com/a/default-user',
         authProvider: 'google',
-        insuranceName: role === 'PACIENTE' ? 'OSDE (210/310/410/510)' : undefined
+        insuranceName: effectiveRole === 'PACIENTE' ? 'Particular / Privado' : undefined
       });
     }
 
@@ -171,7 +182,7 @@ class AuthService {
       action: 'LOGIN',
       resourceType: 'SISTEMA',
       resourceId: `google-sim-${email}`,
-      details: `Inicio de sesión autenticado con cuenta Google: ${email} (${role})`
+      details: `Inicio de sesión autenticado con cuenta Google: ${email} [Rol: ${effectiveRole}]`
     });
 
     return hospitalUser;

@@ -12,10 +12,15 @@ import {
   Stethoscope, 
   HeartPulse, 
   Building2,
-  CheckCircle2
+  CheckCircle2,
+  KeyRound
 } from 'lucide-react';
 
-export const UserManagement: React.FC = () => {
+interface UserManagementProps {
+  onNavigateToRightsMatrix?: () => void;
+}
+
+export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRightsMatrix }) => {
   const users = storageService.getUsers();
   const specialties = storageService.getSpecialties();
 
@@ -153,13 +158,24 @@ export const UserManagement: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-xs"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Crear Nuevo Usuario</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {onNavigateToRightsMatrix && (
+            <button
+              onClick={onNavigateToRightsMatrix}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+            >
+              <KeyRound className="w-4 h-4 text-cyan-200" />
+              <span>Matriz de Derechos (RF-11B)</span>
+            </button>
+          )}
+          <button
+            onClick={handleOpenCreate}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Crear Nuevo Usuario</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}

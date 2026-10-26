@@ -22,6 +22,7 @@ import { DoctorScheduleConfig } from './components/doctor/DoctorScheduleConfig';
 
 // Administrador Components (RF-11 to RF-13)
 import { UserManagement } from './components/admin/UserManagement';
+import { UserRightsMatrix } from './components/admin/UserRightsMatrix';
 import { AuditLogsViewer } from './components/admin/AuditLogsViewer';
 import { GeneralSettings } from './components/admin/GeneralSettings';
 import { LoginGate } from './components/auth/LoginGate';
@@ -79,7 +80,7 @@ export default function App() {
       setActiveTab('rf04');
     } else if (currentUser.role === 'MEDICO' && !['rf07', 'rf08', 'rf09', 'rf10'].includes(activeTab)) {
       setActiveTab('rf07');
-    } else if (currentUser.role === 'ADMINISTRADOR' && !['rf11', 'rf12', 'rf13'].includes(activeTab)) {
+    } else if (currentUser.role === 'ADMINISTRADOR' && !['rf11', 'rf11_rights', 'rf12', 'rf13'].includes(activeTab)) {
       setActiveTab('rf11');
     }
   }, [currentUser?.role, activeTab]);
@@ -93,7 +94,7 @@ export default function App() {
           if (user.role === 'PACIENTE') setActiveTab('rf02');
           else if (user.role === 'RECEPCIONISTA') setActiveTab('rf04');
           else if (user.role === 'MEDICO') setActiveTab('rf07');
-          else setActiveTab('rf11');
+          else setActiveTab('rf11_rights'); // Default admin directly to rights matrix or rf11
         }}
       />
     );
@@ -171,7 +172,12 @@ export default function App() {
             {/* ADMINISTRADOR VIEWS */}
             {currentUser.role === 'ADMINISTRADOR' && (
               <>
-                {activeTab === 'rf11' && <UserManagement />}
+                {activeTab === 'rf11' && (
+                  <UserManagement onNavigateToRightsMatrix={() => setActiveTab('rf11_rights')} />
+                )}
+                {activeTab === 'rf11_rights' && (
+                  <UserRightsMatrix currentUser={currentUser} />
+                )}
                 {activeTab === 'rf12' && <AuditLogsViewer />}
                 {activeTab === 'rf13' && <GeneralSettings />}
               </>

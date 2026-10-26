@@ -13,7 +13,8 @@ import {
   Clock,
   ShieldAlert,
   Sliders,
-  Users2
+  Users2,
+  KeyRound
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -53,7 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeTab, onSele
         ];
       case 'ADMINISTRADOR':
         return [
-          { id: 'rf11', label: 'ABM de Usuarios y Roles', rfCode: 'RF-11', icon: <Users2 className="w-4 h-4" /> },
+          { id: 'rf11', label: 'ABM de Usuarios y Cuentas', rfCode: 'RF-11', icon: <Users2 className="w-4 h-4" /> },
+          { id: 'rf11_rights', label: 'Matriz de Derechos y Permisos', rfCode: 'RF-11B', icon: <KeyRound className="w-4 h-4" /> },
           { id: 'rf12', label: 'Auditoría de Accesos (Logs)', rfCode: 'RF-12', icon: <ShieldAlert className="w-4 h-4" /> },
           { id: 'rf13', label: 'Configuración y Tarifas', rfCode: 'RF-13', icon: <Sliders className="w-4 h-4" /> }
         ];

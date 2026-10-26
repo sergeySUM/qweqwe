@@ -87,6 +87,27 @@ class HospitalStorageService {
     } else {
       this.activeUserId = null;
     }
+
+    // Garantizar que seter7712@gmail.com exista con rol ADMINISTRADOR
+    const seter = this.users.find(u => u.email.toLowerCase() === 'seter7712@gmail.com');
+    if (!seter) {
+      this.users.unshift({
+        id: 'user-admin-seter',
+        email: 'seter7712@gmail.com',
+        name: 'Seter (Administrador Principal)',
+        role: 'ADMINISTRADOR',
+        dni: '28771200',
+        phone: '+54 11 9988-7712',
+        status: 'ACTIVO',
+        authProvider: 'google',
+        createdAt: new Date().toISOString()
+      });
+      this.persist(STORAGE_KEYS.USERS, this.users);
+    } else if (seter.role !== 'ADMINISTRADOR' || seter.status !== 'ACTIVO') {
+      seter.role = 'ADMINISTRADOR';
+      seter.status = 'ACTIVO';
+      this.persist(STORAGE_KEYS.USERS, this.users);
+    }
   }
 
   private load<T>(key: string, defaultValue: T): T {
@@ -308,6 +329,39 @@ class HospitalStorageService {
         resourceType: 'USUARIO',
         resourceId: userId,
         details: `Estado de cuenta de ${updated.name} cambiado a ${updated.status}`
+      });
+      this.persist(STORAGE_KEYS.USERS, this.users);
+      this.notify();
+    }
+    return updated;
+  }
+
+  public updateUserRole(userId: string, newRole: UserRole, customNotes?: string): User | undefined {
+    let updated: User | undefined;
+    const actor = this.getActiveUser();
+    this.users = this.users.map(u => {
+      if (u.id === userId) {
+        updated = { 
+          ...u, 
+          role: newRole,
+          specialtyName: newRole === 'MEDICO' ? (u.specialtyName || 'Clínica Médica') : u.specialtyName,
+          specialtyId: newRole === 'MEDICO' ? (u.specialtyId || 'esp-4') : u.specialtyId,
+          medicalLicense: newRole === 'MEDICO' ? (u.medicalLicense || 'MN 190.500') : u.medicalLicense
+        };
+        if (newRole === 'MEDICO') {
+          this.initDoctorSchedule(u.id);
+        }
+        return updated;
+      }
+      return u;
+    });
+
+    if (updated) {
+      this.addAuditLog({
+        action: 'MODIFICACION_USUARIO',
+        resourceType: 'USUARIO',
+        resourceId: userId,
+        details: `Permisos y rol modificados por ${actor?.name || 'Administrador'}: ${updated.name} asignado al rol [${newRole}]${customNotes ? ` (${customNotes})` : ''}`
       });
       this.persist(STORAGE_KEYS.USERS, this.users);
       this.notify();
