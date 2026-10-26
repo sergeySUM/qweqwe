@@ -17,10 +17,10 @@ import {
 
 interface NavbarProps {
   currentUser: User;
-  onSelectRole: (role: UserRole) => void;
+  onSelectRole?: (role: UserRole) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentUser, onSelectRole }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentUser }) => {
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
   const users = storageService.getUsers();
 
@@ -58,27 +58,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser, onSelectRole }) => 
                 Gestión Clínica Integral
               </span>
             </div>
-          </div>
-
-          {/* Zone 2: Role Switcher Segmented Control */}
-          <div className="hidden md:flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200">
-            {(['PACIENTE', 'RECEPCIONISTA', 'MEDICO', 'ADMINISTRADOR'] as UserRole[]).map(role => {
-              const isActive = currentUser.role === role;
-              return (
-                <button
-                  key={role}
-                  onClick={() => onSelectRole(role)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                  }`}
-                >
-                  {roleLabels[role].icon}
-                  <span>{roleLabels[role].label}</span>
-                </button>
-              );
-            })}
           </div>
 
           {/* Zone 3: Active User Selector & Actions */}

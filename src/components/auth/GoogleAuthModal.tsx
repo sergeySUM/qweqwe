@@ -188,34 +188,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                 Inicie sesión o regístrese automáticamente en el Sistema Hospitalario MediCore utilizando su cuenta de Google.
               </p>
 
-              {/* Role selector for initial account setup */}
-              <div className="space-y-2">
-                <label className="block font-semibold text-slate-800">
-                  Seleccione su perfil de acceso hospitalario:
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { role: 'PACIENTE', label: 'Paciente', icon: <HeartPulse className="w-3.5 h-3.5" /> },
-                    { role: 'MEDICO', label: 'Médico', icon: <Stethoscope className="w-3.5 h-3.5" /> },
-                    { role: 'RECEPCIONISTA', label: 'Recepcionista', icon: <Users className="w-3.5 h-3.5" /> },
-                    { role: 'ADMINISTRADOR', label: 'Administrador', icon: <Shield className="w-3.5 h-3.5" /> }
-                  ].map(r => (
-                    <button
-                      key={r.role}
-                      type="button"
-                      onClick={() => setSelectedRole(r.role as UserRole)}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                        selectedRole === r.role
-                          ? 'bg-cyan-50 border-cyan-700 text-cyan-900 shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {r.icon}
-                      <span>{r.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               {/* Error presentation */}
               {authError && (

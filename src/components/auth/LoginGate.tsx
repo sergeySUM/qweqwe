@@ -242,35 +242,6 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
                 Autenticación corporativa y de pacientes con cuenta de Google verificada por Firebase.
               </p>
 
-              {/* Role selection for new Google account */}
-              <div className="space-y-1.5">
-                <label className="block font-semibold text-slate-700">
-                  Rol hospitalario a vincular:
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { role: 'PACIENTE', label: 'Paciente', icon: <HeartPulse className="w-3.5 h-3.5" /> },
-                    { role: 'MEDICO', label: 'Médico', icon: <Stethoscope className="w-3.5 h-3.5" /> },
-                    { role: 'RECEPCIONISTA', label: 'Recepción', icon: <Users className="w-3.5 h-3.5" /> },
-                    { role: 'ADMINISTRADOR', label: 'Administrador', icon: <Shield className="w-3.5 h-3.5" /> }
-                  ].map(r => (
-                    <button
-                      key={r.role}
-                      type="button"
-                      onClick={() => setSelectedRole(r.role as UserRole)}
-                      className={`p-2 rounded-lg border flex items-center gap-1.5 cursor-pointer text-xs font-medium transition-all ${
-                        selectedRole === r.role
-                          ? 'bg-cyan-50 border-cyan-700 text-cyan-900 font-bold'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {r.icon}
-                      <span>{r.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Real Google popup trigger */}
               <button
                 type="button"
