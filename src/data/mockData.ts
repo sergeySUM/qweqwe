@@ -35,16 +35,6 @@ export const INITIAL_USERS: User[] = [
     authProvider: 'google',
     createdAt: '2025-01-01T08:00:00.000Z'
   },
-  {
-    id: 'user-admin-1',
-    email: 'admin@medicore.com',
-    name: 'Lic. Diego Navarro',
-    role: 'ADMINISTRADOR',
-    dni: '29845120',
-    phone: '+54 11 4589-2231',
-    status: 'ACTIVO',
-    createdAt: '2025-01-10T08:00:00.000Z'
-  },
   // Recepcionistas
   {
     id: 'user-recep-1',
@@ -655,8 +645,8 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 'aud-005',
     timestamp: '2026-10-04T15:20:00.000Z',
-    userId: 'user-admin-1',
-    userName: 'Lic. Diego Navarro',
+    userId: 'user-admin-seter',
+    userName: 'Seter (Administrador Principal)',
     userRole: 'ADMINISTRADOR',
     action: 'CAMBIO_CONFIGURACION',
     resourceType: 'SISTEMA',

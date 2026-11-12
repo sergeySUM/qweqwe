@@ -88,6 +88,17 @@ class HospitalStorageService {
       this.activeUserId = null;
     }
 
+    // Eliminar cuenta administrativa secundaria admin@medicore.com si existe en caché
+    const initialLen = this.users.length;
+    this.users = this.users.filter(
+      u => u.id !== 'user-admin-1' && u.email.toLowerCase() !== 'admin@medicore.com'
+    );
+    let usersChanged = this.users.length !== initialLen;
+    if (this.activeUserId === 'user-admin-1') {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
+      this.activeUserId = null;
+    }
+
     // Garantizar que seter7712@gmail.com exista con rol ADMINISTRADOR
     const seter = this.users.find(u => u.email.toLowerCase() === 'seter7712@gmail.com');
     if (!seter) {
@@ -102,10 +113,14 @@ class HospitalStorageService {
         authProvider: 'google',
         createdAt: new Date().toISOString()
       });
-      this.persist(STORAGE_KEYS.USERS, this.users);
+      usersChanged = true;
     } else if (seter.role !== 'ADMINISTRADOR' || seter.status !== 'ACTIVO') {
       seter.role = 'ADMINISTRADOR';
       seter.status = 'ACTIVO';
+      usersChanged = true;
+    }
+
+    if (usersChanged) {
       this.persist(STORAGE_KEYS.USERS, this.users);
     }
   }

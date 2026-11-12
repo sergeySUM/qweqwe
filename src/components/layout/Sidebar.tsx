@@ -89,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeTab, onSele
             <button
               key={item.id}
               onClick={() => onSelectTab(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left ${
+              className={`w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left ${
                 isActive
                   ? 'bg-cyan-700 text-white font-semibold shadow-xs'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -101,11 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeTab, onSele
                 </span>
                 <span className="truncate">{item.label}</span>
               </div>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                isActive ? 'bg-cyan-800 text-cyan-100' : 'bg-slate-800 text-slate-400'
-              }`}>
-                {item.rfCode}
-              </span>
             </button>
           );
         })}

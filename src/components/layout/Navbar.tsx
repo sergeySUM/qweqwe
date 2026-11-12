@@ -7,7 +7,6 @@ import {
   Building2, 
   UserCheck, 
   RotateCcw, 
-  ChevronDown,
   Stethoscope,
   Users,
   Shield,
@@ -22,7 +21,6 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentUser }) => {
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
-  const users = storageService.getUsers();
 
   const handleLogout = async () => {
     await authService.logout();
@@ -34,11 +32,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser }) => {
     RECEPCIONISTA: { label: 'Recepcionista', icon: <Users className="w-3.5 h-3.5" />, color: 'text-blue-700 bg-blue-50 border-blue-200' },
     MEDICO: { label: 'Médico', icon: <Stethoscope className="w-3.5 h-3.5" />, color: 'text-cyan-700 bg-cyan-50 border-cyan-200' },
     ADMINISTRADOR: { label: 'Administrador', icon: <Shield className="w-3.5 h-3.5" />, color: 'text-purple-700 bg-purple-50 border-purple-200' }
-  };
-
-  const handleUserSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = e.target.value;
-    storageService.setActiveUserId(selectedId);
   };
 
   return (
@@ -60,67 +53,25 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser }) => {
             </div>
           </div>
 
-          {/* Zone 3: Active User Selector & Actions */}
+          {/* Zone 3: Active User Profile & Actions */}
           <div className="flex items-center gap-3">
-            {/* If Admin, show fast persona switcher; otherwise show profile lockup */}
-            {currentUser.role === 'ADMINISTRADOR' ? (
-              <div className="relative flex items-center">
-                <select
-                  aria-label="Seleccionar usuario activo (Admin)"
-                  value={currentUser.id}
-                  onChange={handleUserSelect}
-                  className="appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 pl-3 pr-8 py-1.5 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
-                >
-                  <optgroup label="Médicos">
-                    {users.filter(u => u.role === 'MEDICO').map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.specialtyName || 'Médico'})
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Recepcionistas">
-                    {users.filter(u => u.role === 'RECEPCIONISTA').map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} (Recepción)
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Pacientes">
-                    {users.filter(u => u.role === 'PACIENTE').map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} (DNI: {u.dni})
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Administradores">
-                    {users.filter(u => u.role === 'ADMINISTRADOR').map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} (Admin)
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 pointer-events-none" />
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-                {currentUser.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt={currentUser.name}
-                    className="w-6 h-6 rounded-full object-cover border border-slate-300"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-cyan-700 text-white flex items-center justify-center font-bold text-[10px]">
-                    {currentUser.name.charAt(0)}
-                  </div>
-                )}
-                <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">
-                  {currentUser.name}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              {currentUser.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt={currentUser.name}
+                  className="w-6 h-6 rounded-full object-cover border border-slate-300"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-cyan-700 text-white flex items-center justify-center font-bold text-[10px]">
+                  {currentUser.name.charAt(0)}
+                </div>
+              )}
+              <span className="text-xs font-bold text-slate-900 truncate max-w-[140px]">
+                {currentUser.name}
+              </span>
+            </div>
 
             {/* Google Authentication Trigger Button */}
             {currentUser.authProvider === 'google' ? (
