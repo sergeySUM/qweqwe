@@ -2,13 +2,11 @@ import React, { useState } from 'react';
 import { Specialty, ClinicSettings } from '../../types/hospital';
 import { storageService } from '../../services/storageService';
 import { 
-  Sliders, 
   Stethoscope, 
   Building2, 
   Database, 
   Download, 
   Upload, 
-  Save, 
   Plus, 
   CheckCircle2, 
   AlertCircle
@@ -121,7 +119,7 @@ export const GeneralSettings: React.FC = () => {
       {/* Grid: 2 Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Especialidades y Tarifas (6 Cols) */}
-        <div className="lg:col-span-6 space-y-6">
+        <div className="lg:col-span-6 space-y-6 min-w-0">
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4 text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -189,13 +187,13 @@ export const GeneralSettings: React.FC = () => {
                   key={sp.id}
                   className="p-3 bg-slate-50/70 rounded-lg border border-slate-200 flex items-center justify-between gap-3"
                 >
-                  <div className="flex-1">
-                    <span className="font-bold text-slate-900 block">{sp.name}</span>
-                    <span className="text-[11px] text-slate-500 block truncate">{sp.description}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold text-slate-900 block truncate">{sp.name}</span>
+                    <span className="text-[11px] text-slate-500 block truncate" title={sp.description}>{sp.description}</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-slate-500">Arancel: $</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] text-slate-500 whitespace-nowrap">Arancel: $</span>
                     <input
                       type="number"
                       step="500"
@@ -211,7 +209,7 @@ export const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Right Column: Datos Sanatoriales y Backup (6 Cols) */}
-        <div className="lg:col-span-6 space-y-6">
+        <div className="lg:col-span-6 space-y-6 min-w-0">
           {/* Institutional Info */}
           <form onSubmit={handleSaveSettings} className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4 text-xs">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
