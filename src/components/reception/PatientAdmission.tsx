@@ -18,13 +18,14 @@ interface PatientAdmissionProps {
   currentUser: User;
 }
 
-export const PatientAdmission: React.FC<PatientAdmissionProps> = ({ currentUser }) => {
+export const PatientAdmission: React.FC<PatientAdmissionProps> = ({ currentUser: _currentUser }) => {
   const patients = storageService.getPatients();
-  const doctors = storageService.getDoctors();
   const appointments = storageService.getAppointments();
+  const payments = storageService.getPayments();
   const settings = storageService.getSettings();
 
   const [searchDni, setSearchDni] = useState('');
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<User | null>(null);
 
   // New in-person patient registration state
@@ -63,6 +64,7 @@ export const PatientAdmission: React.FC<PatientAdmissionProps> = ({ currentUser 
   const handleSearchPatient = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchDni.trim()) return;
+    setSearchNotice(null);
     const found = patients.find(p => p.dni.includes(searchDni.trim()) || p.name.toLowerCase().includes(searchDni.toLowerCase()));
     if (found) {
       setSelectedPatient(found);
@@ -70,7 +72,7 @@ export const PatientAdmission: React.FC<PatientAdmissionProps> = ({ currentUser 
     } else {
       setSelectedPatient(null);
       setCoverageValidationResult(null);
-      alert('No se encontró paciente con ese DNI. Puede darlo de alta presencialmente a continuación.');
+      setSearchNotice('No se encontró paciente con ese DNI o nombre. Puede darlo de alta presencialmente a continuación.');
       setIsRegisteringNew(true);
       setNewPatientForm(prev => ({ ...prev, dni: searchDni }));
     }
@@ -162,13 +164,19 @@ export const PatientAdmission: React.FC<PatientAdmissionProps> = ({ currentUser 
 
               <button
                 type="button"
-                onClick={() => setIsRegisteringNew(!isRegisteringNew)}
+                onClick={() => { setIsRegisteringNew(!isRegisteringNew); setSearchNotice(null); }}
                 className="text-xs font-semibold text-cyan-700 hover:text-cyan-800 cursor-pointer flex items-center gap-1"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>{isRegisteringNew ? 'Cancelar Alta' : '+ Nuevo Paciente Presencial'}</span>
               </button>
             </div>
+
+            {searchNotice && (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                {searchNotice}
+              </div>
+            )}
 
             {!isRegisteringNew ? (
               <form onSubmit={handleSearchPatient} className="flex gap-2">
@@ -403,7 +411,9 @@ export const PatientAdmission: React.FC<PatientAdmissionProps> = ({ currentUser 
 
                       <div className="flex justify-between items-center pt-1">
                         <span className="text-[10px] text-slate-400">
-                          {apt.isPaid ? '✓ Copago Cobrado' : '⚠️ Copago Pendiente'}
+                          {(apt.isPaid || payments.some(p => p.status === 'PAGADO' && (p.id === apt.paymentId || p.appointmentId === apt.id)))
+                            ? '✓ Copago Cobrado'
+                            : '⚠️ Copago Pendiente'}
                         </span>
 
                         {!isInConsult && (

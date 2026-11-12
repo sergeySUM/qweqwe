@@ -42,7 +42,8 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'medicore_audit_logs',
   SETTINGS: 'medicore_settings',
   ACTIVE_USER: 'medicore_active_user_id',
-  DB_PRUNE_V2: 'medicore_db_pruned_v2'
+  DB_PRUNE_V2: 'medicore_db_pruned_v2',
+  DB_CLEAR_PAYMENTS_V1: 'medicore_payments_cleared_v1'
 };
 
 class HospitalStorageService {
@@ -184,6 +185,31 @@ class HospitalStorageService {
 
     if (usersChanged) {
       this.persist(STORAGE_KEYS.USERS, this.users);
+    }
+
+    // Limpiar historial de comprobantes precargados de muestra (manteniendo los nuevos reales)
+    if (localStorage.getItem(STORAGE_KEYS.DB_CLEAR_PAYMENTS_V1) !== 'true') {
+      const seedPaymentIds = new Set(['pay-001', 'pay-002']);
+      const prevPaymentsLen = this.payments.length;
+      this.payments = this.payments.filter(p => !seedPaymentIds.has(p.id));
+
+      const validPaymentIds = new Set(this.payments.map(p => p.id));
+      let aptsChanged = false;
+      this.appointments = this.appointments.map(a => {
+        if (a.paymentId && !validPaymentIds.has(a.paymentId)) {
+          aptsChanged = true;
+          return { ...a, isPaid: false, paymentId: undefined };
+        }
+        return a;
+      });
+
+      if (this.payments.length !== prevPaymentsLen) {
+        this.persist(STORAGE_KEYS.PAYMENTS, this.payments);
+      }
+      if (aptsChanged) {
+        this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
+      }
+      localStorage.setItem(STORAGE_KEYS.DB_CLEAR_PAYMENTS_V1, 'true');
     }
 
     // Calcular hashes SHA-256 faltantes de forma asíncrona sin bloquear el arranque
@@ -819,6 +845,7 @@ class HospitalStorageService {
       if (apt) {
         apt.isPaid = true;
         apt.paymentId = payment.id;
+        apt.copayAmount = payment.amount;
         this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
       }
     }

@@ -178,8 +178,7 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
     reason: 'Control rutinario de hipertensión y palpitaciones leves',
     insuranceName: 'OSDE 310',
     copayAmount: 3500,
-    isPaid: true,
-    paymentId: 'pay-001',
+    isPaid: false,
     notes: 'Paciente ya ingresó a la sala de espera (Triage realizado)',
     createdAt: '2026-10-01T10:00:00.000Z'
   },
@@ -220,8 +219,7 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
     reason: 'Chequeo anual y laboratorio cardiovascular',
     insuranceName: 'Swiss Medical SMG20',
     copayAmount: 4200,
-    isPaid: true,
-    paymentId: 'pay-002',
+    isPaid: false,
     createdAt: '2026-09-01T14:00:00.000Z'
   }
 ];
@@ -433,42 +431,7 @@ export const INITIAL_LAB_ORDERS: LabOrder[] = [
   }
 ];
 
-export const INITIAL_PAYMENTS: PaymentTransaction[] = [
-  {
-    id: 'pay-001',
-    appointmentId: 'apt-001',
-    patientId: 'user-pac-1',
-    patientName: 'Lucía Fernández',
-    patientDni: '36987412',
-    receptionistId: 'user-recep-1',
-    receptionistName: 'Ana Beltrán',
-    concept: 'Copago Consulta Médica - Cardiología',
-    amount: 3500,
-    paymentMethod: 'TARJETA_DEBITO',
-    date: '2026-10-05T08:45:00.000Z',
-    invoiceType: 'FACTURA_B',
-    invoiceNumber: 'B0001-00045892',
-    insuranceCoveredAmount: 21500,
-    status: 'PAGADO'
-  },
-  {
-    id: 'pay-002',
-    appointmentId: 'apt-005',
-    patientId: 'user-pac-2',
-    patientName: 'Roberto Méndez',
-    patientDni: '24158930',
-    receptionistId: 'user-recep-1',
-    receptionistName: 'Ana Beltrán',
-    concept: 'Copago Consulta Especializada - Cardiología',
-    amount: 4200,
-    paymentMethod: 'EFECTIVO',
-    date: '2026-09-15T10:15:00.000Z',
-    invoiceType: 'FACTURA_B',
-    invoiceNumber: 'B0001-00045610',
-    insuranceCoveredAmount: 20800,
-    status: 'PAGADO'
-  }
-];
+export const INITIAL_PAYMENTS: PaymentTransaction[] = [];
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {

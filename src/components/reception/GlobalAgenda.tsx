@@ -1,34 +1,29 @@
 import React, { useState, useMemo } from 'react';
-import { User, Appointment, AppointmentStatus } from '../../types/hospital';
+import { User, Appointment } from '../../types/hospital';
 import { storageService } from '../../services/storageService';
 import { 
-  CalendarRange, 
   Search, 
   Plus, 
   Ban, 
-  Calendar, 
   Clock, 
-  UserCheck, 
-  AlertCircle,
-  Filter,
-  CheckCircle2,
   XCircle,
-  Edit2
+  Edit2,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 
 interface GlobalAgendaProps {
   currentUser: User;
 }
 
-export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
+export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser: _currentUser }) => {
   const doctors = storageService.getDoctors();
-  const specialties = storageService.getSpecialties();
   const patients = storageService.getPatients();
   const appointments = storageService.getAppointments();
+  const payments = storageService.getPayments();
 
   const [filterDoctorId, setFilterDoctorId] = useState<string>('');
-  const [filterSpecialtyId, setFilterSpecialtyId] = useState<string>('');
-  const [filterDate, setFilterDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [filterDate, setFilterDate] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
@@ -36,12 +31,13 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
   const [isNewAppointmentModalOpen, setIsNewAppointmentModalOpen] = useState<boolean>(false);
   const [isBlockSlotModalOpen, setIsBlockSlotModalOpen] = useState<boolean>(false);
   const [reschedulingApt, setReschedulingApt] = useState<Appointment | null>(null);
+  const [cancelingApt, setCancelingApt] = useState<Appointment | null>(null);
 
   // New appointment form state
   const [newAptData, setNewAptData] = useState({
     patientId: '',
     doctorId: '',
-    date: filterDate,
+    date: new Date().toISOString().split('T')[0],
     time: '09:00',
     reason: '',
     copayAmount: 3500
@@ -50,7 +46,7 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
   // Block slot form state
   const [blockData, setBlockData] = useState({
     doctorId: doctors[0]?.id || '',
-    date: filterDate,
+    date: new Date().toISOString().split('T')[0],
     time: '12:00',
     durationMinutes: 60,
     reason: 'Quirófano programado / Cirugía de guardia'
@@ -66,7 +62,6 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
   const filteredAppointments = useMemo(() => {
     return appointments.filter(apt => {
       if (filterDoctorId && apt.doctorId !== filterDoctorId) return false;
-      if (filterSpecialtyId && apt.specialtyId !== filterSpecialtyId) return false;
       if (filterDate && apt.date !== filterDate) return false;
       if (filterStatus && apt.status !== filterStatus) return false;
       if (searchTerm) {
@@ -76,8 +71,8 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
         if (!matchPatient && !matchDoctor) return false;
       }
       return true;
-    }).sort((a, b) => a.time.localeCompare(b.time));
-  }, [appointments, filterDoctorId, filterSpecialtyId, filterDate, filterStatus, searchTerm]);
+    }).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  }, [appointments, filterDoctorId, filterDate, filterStatus, searchTerm]);
 
   // Handle create appointment from reception
   const handleCreateAppointment = (e: React.FormEvent) => {
@@ -193,10 +188,21 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
         {/* Date */}
         <div>
-          <label className="block font-medium text-slate-700 mb-1">Fecha de Agenda</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="font-medium text-slate-700">Fecha de Agenda</label>
+            {filterDate && (
+              <button
+                type="button"
+                onClick={() => setFilterDate('')}
+                className="text-[10px] font-semibold text-cyan-700 hover:underline cursor-pointer"
+              >
+                Ver todas
+              </button>
+            )}
+          </div>
           <input
             type="date"
             value={filterDate}
@@ -216,24 +222,7 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
             <option value="">Todos los médicos...</option>
             {doctors.map(d => (
               <option key={d.id} value={d.id}>
-                {d.name} ({d.specialtyName})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Specialty */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">Especialidad</label>
-          <select
-            value={filterSpecialtyId}
-            onChange={e => setFilterSpecialtyId(e.target.value)}
-            className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-cyan-600 focus:outline-hidden bg-white"
-          >
-            <option value="">Todas las especialidades...</option>
-            {specialties.map(esp => (
-              <option key={esp.id} value={esp.id}>
-                {esp.name}
+                {d.name}
               </option>
             ))}
           </select>
@@ -290,10 +279,10 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
             <table className="w-full text-xs text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/50 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-4">Hora</th>
+                  <th className="py-3 px-4">Fecha / Hora</th>
                   <th className="py-3 px-4">Paciente</th>
                   <th className="py-3 px-4">DNI / Contacto</th>
-                  <th className="py-3 px-4">Médico / Especialidad</th>
+                  <th className="py-3 px-4">Médico</th>
                   <th className="py-3 px-4">Cobertura / Copago</th>
                   <th className="py-3 px-4">Estado</th>
                   <th className="py-3 px-4 text-right">Acciones</th>
@@ -302,6 +291,12 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
               <tbody className="divide-y divide-slate-100">
                 {filteredAppointments.map(apt => {
                   const isBlocked = apt.status === 'BLOQUEADO';
+                  const linkedPayment = payments.find(
+                    p => p.status === 'PAGADO' && (p.id === apt.paymentId || p.appointmentId === apt.id)
+                  );
+                  const isActuallyPaid = Boolean(linkedPayment) || (apt.isPaid && !apt.paymentId);
+                  const displayAmount = linkedPayment ? linkedPayment.amount : apt.copayAmount;
+
                   return (
                     <tr
                       key={apt.id}
@@ -313,6 +308,9 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
                           <span>{apt.time}</span>
+                        </div>
+                        <div className="text-[10px] font-normal text-slate-500 pl-5">
+                          {apt.date}
                         </div>
                       </td>
 
@@ -339,18 +337,35 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
 
                       <td className="py-3 px-4">
                         <span className="font-medium text-slate-900 block">{apt.doctorName}</span>
-                        <span className="text-cyan-700 text-[11px]">{apt.specialtyName}</span>
                       </td>
 
                       <td className="py-3 px-4">
-                        <span className="block text-slate-700 font-medium">{apt.insuranceName || 'Particular'}</span>
-                        <span className="tabular-nums font-bold text-slate-900">
-                          ${apt.copayAmount.toLocaleString()}
-                        </span>
-                        {apt.isPaid ? (
-                          <span className="text-emerald-700 font-semibold text-[10px] block">Abonado</span>
+                        {isBlocked ? (
+                          <span className="text-[11px] text-rose-700 italic">Sin cobro (Bloqueo)</span>
                         ) : (
-                          <span className="text-amber-700 font-semibold text-[10px] block">Pendiente Caja</span>
+                          <div className="space-y-0.5">
+                            <span className="block text-slate-700 font-medium">{apt.insuranceName || 'Particular'}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="tabular-nums font-bold text-slate-900">
+                                ${displayAmount.toLocaleString()}
+                              </span>
+                              {isActuallyPaid ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[10px]">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>Pagado</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 font-semibold text-[10px]">
+                                  Pendiente Caja
+                                </span>
+                              )}
+                            </div>
+                            {linkedPayment && (
+                              <span className="text-[10px] text-emerald-700 font-mono block">
+                                {linkedPayment.paymentMethod.replace('_', ' ')} · {linkedPayment.invoiceNumber}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -383,11 +398,7 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
-                                onClick={() => {
-                                  if (window.confirm(`¿Cancelar turno de ${apt.patientName}?`)) {
-                                    storageService.cancelAppointment(apt.id, 'Cancelado desde Agenda Global');
-                                  }
-                                }}
+                                onClick={() => setCancelingApt(apt)}
                                 title="Cancelar Turno"
                                 className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
                               >
@@ -453,7 +464,7 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
                   <option value="">Seleccione profesional...</option>
                   {doctors.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.name} · {d.specialtyName}
+                      {d.name}
                     </option>
                   ))}
                 </select>
@@ -551,7 +562,7 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
                 >
                   {doctors.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.name} · {d.specialtyName}
+                      {d.name}
                     </option>
                   ))}
                 </select>
@@ -657,6 +668,45 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser }) => {
                 className="px-4 py-1.5 bg-cyan-700 text-white font-semibold rounded-lg hover:bg-cyan-800 cursor-pointer"
               >
                 Guardar Reprogramación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Confirmar Cancelación de Turno */}
+      {cancelingApt && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full border border-slate-200 p-6 space-y-4 text-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-rose-100 text-rose-700 rounded-lg shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-900 text-sm">Cancelar Turno</h3>
+                <p className="text-slate-600">
+                  ¿Confirma cancelar el turno de <b>{cancelingApt.patientName}</b> con <b>{cancelingApt.doctorName}</b> ({cancelingApt.date} {cancelingApt.time})?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setCancelingApt(null)}
+                className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 cursor-pointer"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  storageService.cancelAppointment(cancelingApt.id, 'Cancelado desde Agenda Global');
+                  setCancelingApt(null);
+                }}
+                className="px-4 py-1.5 bg-rose-600 text-white font-semibold rounded-lg hover:bg-rose-700 cursor-pointer"
+              >
+                Confirmar Cancelación
               </button>
             </div>
           </div>

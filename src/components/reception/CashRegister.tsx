@@ -1,18 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { User, PaymentTransaction, PaymentMethod, Appointment } from '../../types/hospital';
+import { User, PaymentTransaction, PaymentMethod } from '../../types/hospital';
 import { storageService } from '../../services/storageService';
 import { PrintModal } from '../common/PrintModal';
 import { 
   Receipt, 
-  CreditCard, 
-  DollarSign, 
   CheckCircle2, 
-  Printer, 
-  FileSpreadsheet, 
-  ArrowUpRight,
-  Wallet,
-  Clock,
-  ShieldCheck
+  Printer
 } from 'lucide-react';
 
 interface CashRegisterProps {
@@ -23,8 +16,10 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
   const appointments = storageService.getAppointments();
   const patients = storageService.getPatients();
   const payments = storageService.getPayments();
+  const settings = storageService.getSettings();
 
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string>('');
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('TARJETA_DEBITO');
   const [invoiceType, setInvoiceType] = useState<'FACTURA_B' | 'FACTURA_C' | 'RECIBO_OFICIAL'>('FACTURA_B');
   const [customConcept, setCustomConcept] = useState<string>('');
@@ -41,7 +36,7 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
 
   // Pending payments from appointments
   const pendingAppointments = useMemo(() => {
-    return appointments.filter(a => !a.isPaid && a.status !== 'CANCELADO');
+    return appointments.filter(a => !a.isPaid && a.status !== 'CANCELADO' && a.status !== 'BLOQUEADO');
   }, [appointments]);
 
   // Selected appointment details
@@ -79,17 +74,29 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
     let patientId = '';
     let patientName = '';
     let patientDni = '';
-    let concept = customConcept;
-    let amount = customAmount;
+    let concept = customConcept.trim();
+    const amount = Number(customAmount) || 0;
     let appointmentId: string | undefined = undefined;
+    let insuranceCoveredAmount = 0;
 
     if (selectedAppointment) {
       patientId = selectedAppointment.patientId;
       patientName = selectedAppointment.patientName;
       patientDni = selectedAppointment.patientDni;
-      concept = `Copago Consulta ${selectedAppointment.specialtyName} - ${selectedAppointment.doctorName}`;
-      amount = selectedAppointment.copayAmount;
+      if (!concept) {
+        concept = `Copago Consulta - ${selectedAppointment.doctorName}`;
+      }
       appointmentId = selectedAppointment.id;
+      const isParticular = !selectedAppointment.insuranceName || selectedAppointment.insuranceName.includes('Particular');
+      insuranceCoveredAmount = isParticular ? 0 : Math.max(0, settings.baseSpecialistConsultFee - amount);
+    } else if (selectedPatientId) {
+      const pac = patients.find(p => p.id === selectedPatientId);
+      patientId = pac?.id || '';
+      patientName = pac?.name || 'Paciente Mostrador';
+      patientDni = pac?.dni || 'Sin DNI';
+      if (!concept) concept = 'Práctica médica ambulatoria';
+      const isParticular = !pac?.insuranceName || pac.insuranceName.includes('Particular');
+      insuranceCoveredAmount = isParticular ? 0 : Math.max(0, settings.baseGeneralConsultFee - amount);
     } else {
       patientName = 'Paciente Mostrador';
       patientDni = 'Sin DNI';
@@ -107,10 +114,11 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
       amount,
       paymentMethod,
       invoiceType,
-      insuranceCoveredAmount: 18000
+      insuranceCoveredAmount
     });
 
     setSelectedAppointmentId('');
+    setSelectedPatientId('');
     setCustomConcept('');
     setModalState({ isOpen: true, data: newPayment });
   };
@@ -185,11 +193,13 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
               <select
                 value={selectedAppointmentId}
                 onChange={e => {
-                  setSelectedAppointmentId(e.target.value);
-                  const apt = appointments.find(a => a.id === e.target.value);
+                  const id = e.target.value;
+                  setSelectedAppointmentId(id);
+                  const apt = appointments.find(a => a.id === id);
                   if (apt) {
+                    setSelectedPatientId(apt.patientId);
                     setCustomAmount(apt.copayAmount);
-                    setCustomConcept(`Copago Consulta ${apt.specialtyName}`);
+                    setCustomConcept(`Copago Consulta - ${apt.doctorName}`);
                   }
                 }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
@@ -197,11 +207,31 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
                 <option value="">Seleccione turno pendiente o ingrese cobro manual...</option>
                 {pendingAppointments.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.patientName} · {a.doctorName} (${a.copayAmount.toLocaleString()})
+                    {a.date} {a.time} · {a.patientName} · {a.doctorName} (${a.copayAmount.toLocaleString()})
                   </option>
                 ))}
               </select>
             </div>
+
+            {!selectedAppointment && (
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Paciente (Opcional)
+                </label>
+                <select
+                  value={selectedPatientId}
+                  onChange={e => setSelectedPatientId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
+                >
+                  <option value="">Paciente Mostrador / Sin asignar...</option>
+                  {patients.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} (DNI: {p.dni})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Concept */}
             <div>
@@ -335,7 +365,7 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
             </div>
           ) : (
             <div className="py-8 text-center text-slate-400 text-xs">
-              No hay cobros registrados en el sistema todavía.
+              No hay comprobantes emitidos registrados todavía. Al procesar un nuevo cobro aparecerá aquí automáticamente.
             </div>
           )}
         </div>
