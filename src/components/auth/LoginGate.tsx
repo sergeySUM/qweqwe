@@ -1,38 +1,38 @@
-import React, { useState } from 'react';
-import { User, UserRole } from '../../types/hospital';
+import React, { useState, useEffect } from 'react';
+import { User } from '../../types/hospital';
 import { storageService } from '../../services/storageService';
 import { authService, GoogleAuthResult } from '../../services/authService';
+import { SelectedServiceAd } from '../landing/MedicalLandingPage';
 import { 
   Building2, 
   Lock, 
-  ShieldCheck, 
-  AlertCircle, 
   CheckCircle2, 
   UserPlus, 
-  Stethoscope, 
-  Users, 
-  Shield, 
-  HeartPulse, 
-  ArrowRight,
-  Sparkles,
-  KeyRound,
-  Ban
+  Ban,
+  ArrowLeft
 } from 'lucide-react';
 
 interface LoginGateProps {
   onLoginSuccess: (user: User) => void;
+  initialTab?: 'google' | 'register';
+  selectedServiceAd?: SelectedServiceAd | null;
+  onBackToLanding?: () => void;
 }
 
-export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
-  const [activeTab, setActiveTab] = useState<'google' | 'credentials' | 'register'>('google');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('PACIENTE');
+export const LoginGate: React.FC<LoginGateProps> = ({
+  onLoginSuccess,
+  initialTab = 'register',
+  selectedServiceAd = null,
+  onBackToLanding
+}) => {
+  const [activeTab, setActiveTab] = useState<'google' | 'register'>(initialTab);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDomainError, setIsDomainError] = useState(false);
 
-  // Credentials form state
-  const [credentialEmail, setCredentialEmail] = useState('');
-  const [credentialPassword, setCredentialPassword] = useState('••••••••');
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab, selectedServiceAd]);
 
   // New patient registration form state
   const [regForm, setRegForm] = useState({
@@ -54,7 +54,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
     setErrorMessage(null);
     setIsDomainError(false);
 
-    const result: GoogleAuthResult = await authService.loginWithGoogle(selectedRole);
+    const result: GoogleAuthResult = await authService.loginWithGoogle('PACIENTE');
     setLoading(false);
 
     if (result.success && result.user) {
@@ -67,53 +67,6 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
     } else {
       setErrorMessage(result.error || 'Error al autenticar con Google.');
       setIsDomainError(Boolean(result.isDomainError));
-    }
-  };
-
-  // Quick assisted Google sign in
-  const handleAssistedGoogleSignIn = (email: string = 'seter7712@gmail.com') => {
-    const name = email.split('@')[0];
-    const formatted = name.charAt(0).toUpperCase() + name.slice(1);
-    const user = authService.loginWithSimulatedGoogleAccount(email, formatted, selectedRole);
-    onLoginSuccess(user);
-  };
-
-  // Standard Credentials Login Handler
-  const handleCredentialsLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
-
-    const trimmed = credentialEmail.trim().toLowerCase();
-    const foundUser = users.find(u => 
-      u.email.toLowerCase() === trimmed || u.dni.replace(/\./g, '') === trimmed.replace(/\./g, '')
-    );
-
-    if (!foundUser) {
-      setErrorMessage('Usuario no registrado. Verifique el correo electrónico o DNI ingresado.');
-      return;
-    }
-
-    const result = storageService.setActiveUserId(foundUser.id);
-    if (!result.success) {
-      setErrorMessage(result.error || 'Acceso denegado.');
-      return;
-    }
-
-    if (result.user) {
-      onLoginSuccess(result.user);
-    }
-  };
-
-  // Direct quick login helper for evaluators
-  const handleQuickPersonaLogin = (userId: string) => {
-    setErrorMessage(null);
-    const result = storageService.setActiveUserId(userId);
-    if (!result.success) {
-      setErrorMessage(result.error || 'Acceso denegado.');
-      return;
-    }
-    if (result.user) {
-      onLoginSuccess(result.user);
     }
   };
 
@@ -153,6 +106,19 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-screen bg-slate-100/90 flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8 font-sans">
+      {onBackToLanding && (
+        <div className="max-w-md w-full mb-3">
+          <button
+            type="button"
+            onClick={onBackToLanding}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer py-1"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Volver a Servicios Médicos</span>
+          </button>
+        </div>
+      )}
+
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
         {/* Institutional Header Banner */}
         <div className="bg-slate-900 text-white p-6 text-center space-y-2 relative overflow-hidden">
@@ -189,19 +155,6 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
             </svg>
             <span>Google</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setActiveTab('credentials'); setErrorMessage(null); }}
-            className={`flex-1 py-3 px-2 text-center transition-colors cursor-pointer flex items-center justify-center gap-1.5 border-b-2 ${
-              activeTab === 'credentials'
-                ? 'border-cyan-700 text-cyan-900 bg-white font-bold'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Padrón / Staff</span>
           </button>
 
           <button
@@ -257,128 +210,26 @@ export const LoginGate: React.FC<LoginGateProps> = ({ onLoginSuccess }) => {
                 </svg>
                 <span>{loading ? 'Validando con Google...' : 'Ingresar con Cuenta de Google'}</span>
               </button>
-
-              {/* Fast track with Google account */}
-              <div className="pt-2 border-t border-slate-100 text-center space-y-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleAssistedGoogleSignIn('seter7712@gmail.com')}
-                  className="w-full py-2.5 px-3 bg-cyan-700 hover:bg-cyan-800 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
-                >
-                  <Sparkles className="w-4 h-4 text-cyan-200" />
-                  <span>Acceso Inmediato: seter7712@gmail.com (Administrador)</span>
-                </button>
-                <p className="text-[10px] text-slate-500">
-                  Autenticación directa con privilegios de Administrador y Matriz de Derechos.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: STAFF & HOSPITAL CREDENTIALS */}
-          {activeTab === 'credentials' && (
-            <div className="space-y-4 text-xs">
-              <form onSubmit={handleCredentialsLogin} className="space-y-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Correo Electrónico o DNI *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="ej. seter7712@gmail.com o DNI"
-                    value={credentialEmail}
-                    onChange={e => setCredentialEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-cyan-600 focus:outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Contraseña Institucional *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={credentialPassword}
-                    onChange={e => setCredentialPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-cyan-600 focus:outline-hidden"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2 mt-2"
-                >
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Validar Credencial y Entrar</span>
-                </button>
-              </form>
-
-              {/* Demo accounts selector for easy testing */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
-                <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Acceso Rápido de Demostración:
-                </span>
-                
-                {/* Highlight Seter Admin */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickPersonaLogin('user-admin-seter')}
-                  className="w-full p-2 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-md text-left font-bold text-cyan-900 cursor-pointer flex items-center justify-between"
-                >
-                  <span className="truncate">seter7712@gmail.com (Administrador Principal)</span>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-cyan-700 text-white rounded font-mono">ADMIN</span>
-                </button>
-
-                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickPersonaLogin('user-doc-1')}
-                    className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-left font-medium text-slate-800 cursor-pointer truncate"
-                  >
-                    Dr. Morales (Médico)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickPersonaLogin('user-recep-1')}
-                    className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-left font-medium text-slate-800 cursor-pointer truncate"
-                  >
-                    Ana Beltrán (Recepción)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickPersonaLogin('user-pac-1')}
-                    className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-left font-medium text-slate-800 cursor-pointer truncate"
-                  >
-                    Lucía F. (Paciente)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickPersonaLogin('user-admin-1')}
-                    className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-left font-medium text-slate-800 cursor-pointer truncate"
-                  >
-                    Lic. Navarro (Admin)
-                  </button>
-                </div>
-
-                {/* Test Suspended user to verify access denial */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickPersonaLogin('user-susp-1')}
-                    className="w-full p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md text-center font-semibold text-[10px] text-rose-800 cursor-pointer"
-                  >
-                    Probar Intento con Cuenta Suspendida (Verifica Rechazo)
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
           {/* TAB 3: REGISTER NEW PATIENT */}
           {activeTab === 'register' && (
             <form onSubmit={handlePatientRegister} className="space-y-3 text-xs">
+              {selectedServiceAd && (
+                <div className="p-3 bg-cyan-50/80 border border-cyan-200 rounded-xl space-y-1">
+                  <div className="text-[11px] font-medium text-cyan-800">
+                    Servicio seleccionado · Registro requerido
+                  </div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {selectedServiceAd.title}
+                  </div>
+                  <div className="text-[11px] text-slate-600 font-mono tabular-nums">
+                    {selectedServiceAd.category} · {selectedServiceAd.priceLabel}
+                  </div>
+                </div>
+              )}
+
               <p className="text-slate-600 leading-relaxed text-[11px]">
                 Cree su cuenta de paciente para reservar turnos online, acceder a recetas digitales y resultados de estudios.
               </p>

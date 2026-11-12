@@ -26,11 +26,16 @@ import { UserRightsMatrix } from './components/admin/UserRightsMatrix';
 import { AuditLogsViewer } from './components/admin/AuditLogsViewer';
 import { GeneralSettings } from './components/admin/GeneralSettings';
 import { LoginGate } from './components/auth/LoginGate';
+import { MedicalLandingPage, SelectedServiceAd } from './components/landing/MedicalLandingPage';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getActiveUser());
   const [activeTab, setActiveTab] = useState<string>('rf07');
   const [targetPatientId, setTargetPatientId] = useState<string | undefined>(undefined);
+  const [unauthView, setUnauthView] = useState<'landing' | 'register' | 'google'>(() =>
+    typeof window !== 'undefined' && window.location.hash === '#registro' ? 'register' : 'landing'
+  );
+  const [selectedServiceAd, setSelectedServiceAd] = useState<SelectedServiceAd | null>(null);
 
   // Subscribe to storage changes
   useEffect(() => {
@@ -85,16 +90,72 @@ export default function App() {
     }
   }, [currentUser?.role, activeTab]);
 
-  // Si no está autenticado o la cuenta está suspendida, mostrar pantalla de bloqueo y acceso autorizado
+  // Sync hash changes for #registro back/forward support
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#registro') {
+        setUnauthView('register');
+      } else if (!window.location.hash || window.location.hash === '#inicio') {
+        setUnauthView('landing');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const navigateToRegister = (ad: SelectedServiceAd | null = null) => {
+    setSelectedServiceAd(ad);
+    setUnauthView('register');
+    if (typeof window !== 'undefined') {
+      window.location.hash = 'registro';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const navigateToGoogleLogin = () => {
+    setSelectedServiceAd(null);
+    setUnauthView('google');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const navigateToLanding = () => {
+    setUnauthView('landing');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Si no está autenticado o la cuenta está suspendida, mostrar Landing Page o página de Registro/Acceso
   if (!currentUser || currentUser.status !== 'ACTIVO') {
+    if (unauthView === 'landing') {
+      return (
+        <MedicalLandingPage
+          onSelectServiceAd={(ad) => navigateToRegister(ad)}
+          onGoToRegister={() => navigateToRegister(null)}
+          onGoToGoogleLogin={navigateToGoogleLogin}
+        />
+      );
+    }
+
     return (
       <LoginGate
+        initialTab={unauthView === 'google' ? 'google' : 'register'}
+        selectedServiceAd={selectedServiceAd}
+        onBackToLanding={navigateToLanding}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
+          setSelectedServiceAd(null);
+          setUnauthView('landing');
+          if (typeof window !== 'undefined' && window.location.hash === '#registro') {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
           if (user.role === 'PACIENTE') setActiveTab('rf02');
           else if (user.role === 'RECEPCIONISTA') setActiveTab('rf04');
           else if (user.role === 'MEDICO') setActiveTab('rf07');
-          else setActiveTab('rf11_rights'); // Default admin directly to rights matrix or rf11
+          else setActiveTab('rf11_rights');
         }}
       />
     );
