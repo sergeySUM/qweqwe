@@ -12,6 +12,8 @@ export interface User {
   photoURL?: string;
   authProvider?: 'google' | 'local';
   googleUid?: string;
+  passwordHash?: string;
+  plainPassword?: string;
   // Campos específicos de Paciente
   address?: string;
   birthDate?: string;

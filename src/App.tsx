@@ -142,7 +142,7 @@ export default function App() {
 
     return (
       <LoginGate
-        initialTab={unauthView === 'google' ? 'google' : 'register'}
+        initialTab={unauthView === 'google' ? 'login' : 'register'}
         selectedServiceAd={selectedServiceAd}
         onBackToLanding={navigateToLanding}
         onLoginSuccess={(user) => {

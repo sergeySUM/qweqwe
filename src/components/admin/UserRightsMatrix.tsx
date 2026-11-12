@@ -6,20 +6,18 @@ import {
   Search, 
   CheckCircle2, 
   ShieldCheck, 
-  ShieldAlert, 
   UserX, 
   UserCheck, 
   Stethoscope, 
   Users, 
   Shield, 
-  HeartPulse, 
-  AlertCircle,
-  FileCheck2,
-  Calendar,
-  Receipt,
-  ClipboardList,
-  Sparkles,
-  Info
+  HeartPulse,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface UserRightsMatrixProps {
@@ -91,6 +89,11 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
   const [roleFilter, setRoleFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [statusNotice, setStatusNotice] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [showAllPasswords, setShowAllPasswords] = useState(true);
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
+  const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Filter users
   const filteredUsers = useMemo(() => {
@@ -146,6 +149,39 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
         type: updated.status === 'ACTIVO' ? 'success' : 'info'
       });
       setTimeout(() => setStatusNotice(null), 4000);
+    }
+  };
+
+  const toggleRowPassword = (userId: string) => {
+    setRevealedPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
+
+  const handleCopyPassword = async (userId: string, password: string) => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopiedUserId(userId);
+      setTimeout(() => setCopiedUserId(prev => (prev === userId ? null : prev)), 2000);
+    } catch {
+      // Clipboard API fallback ignored
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+    const result = storageService.deleteUser(userToDelete.id);
+    if (result.success) {
+      setStatusNotice({
+        message: `Usuario ${userToDelete.name} (${userToDelete.email}) eliminado de la base de datos.`,
+        type: 'info'
+      });
+      setUserToDelete(null);
+      setDeleteError(null);
+      setTimeout(() => setStatusNotice(null), 4000);
+    } else {
+      setDeleteError(result.error || 'No se pudo eliminar el usuario.');
     }
   };
 
@@ -308,9 +344,19 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
             </span>
           </div>
 
-          <span className="text-[11px] font-mono text-cyan-800 bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-200 font-semibold">
-            Admin Activo: {currentUser.email}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAllPasswords(prev => !prev)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer"
+            >
+              {showAllPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              <span>{showAllPasswords ? 'Ocultar Contraseñas' : 'Ver Contraseñas'}</span>
+            </button>
+            <span className="text-[11px] font-mono text-cyan-800 bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-200 font-semibold">
+              Admin Activo: {currentUser.email}
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -318,6 +364,7 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
                 <th className="py-3 px-4">Usuario Registrado</th>
+                <th className="py-3 px-4">Contraseña</th>
                 <th className="py-3 px-4">Cambiar Rol / Derechos</th>
                 <th className="py-3 px-4">Facultades Asignadas en el Sistema</th>
                 <th className="py-3 px-4 text-center">Estado Acceso</th>
@@ -371,6 +418,45 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
                           </span>
                         </div>
                       </div>
+                    </td>
+
+                    {/* Password Inspection */}
+                    <td className="py-3.5 px-4">
+                      {user.plainPassword ? (
+                        <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+                          <span className="font-mono text-[11px] text-slate-900 select-all">
+                            {showAllPasswords || revealedPasswords[user.id] ? user.plainPassword : '••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRowPassword(user.id)}
+                            title={showAllPasswords || revealedPasswords[user.id] ? 'Ocultar' : 'Mostrar'}
+                            className="text-slate-400 hover:text-slate-700 cursor-pointer p-0.5"
+                          >
+                            {showAllPasswords || revealedPasswords[user.id] ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPassword(user.id, user.plainPassword!)}
+                            title="Copiar contraseña"
+                            className="text-slate-400 hover:text-cyan-700 cursor-pointer p-0.5"
+                          >
+                            {copiedUserId === user.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 italic">
+                          Solo Google Auth
+                        </span>
+                      )}
                     </td>
 
                     {/* Interactive Role Switcher */}
@@ -457,28 +543,40 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
 
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(user.id)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${
-                          user.status === 'ACTIVO'
-                            ? 'text-rose-700 hover:bg-rose-50 border border-rose-200'
-                            : 'text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-                        }`}
-                        title={user.status === 'ACTIVO' ? 'Suspender acceso a la cuenta' : 'Reactivar acceso a la cuenta'}
-                      >
-                        {user.status === 'ACTIVO' ? (
-                          <>
-                            <UserX className="w-3.5 h-3.5" />
-                            <span>Suspender</span>
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck className="w-3.5 h-3.5" />
-                            <span>Habilitar</span>
-                          </>
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(user.id)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${
+                            user.status === 'ACTIVO'
+                              ? 'text-rose-700 hover:bg-rose-50 border border-rose-200'
+                              : 'text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                          }`}
+                          title={user.status === 'ACTIVO' ? 'Suspender acceso a la cuenta' : 'Reactivar acceso a la cuenta'}
+                        >
+                          {user.status === 'ACTIVO' ? (
+                            <>
+                              <UserX className="w-3.5 h-3.5" />
+                              <span>Suspender</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="w-3.5 h-3.5" />
+                              <span>Habilitar</span>
+                            </>
+                          )}
+                        </button>
+                        {user.email.toLowerCase() !== 'seter7712@gmail.com' && (
+                          <button
+                            type="button"
+                            onClick={() => { setDeleteError(null); setUserToDelete(user); }}
+                            className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded transition-colors cursor-pointer"
+                            title="Eliminar Usuario"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         )}
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -487,6 +585,50 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
           </table>
         </div>
       </div>
+
+      {/* Delete User Confirmation Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 p-6 space-y-4 text-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-rose-100 text-rose-700 rounded-lg shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Eliminar Usuario de la Base de Datos
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  ¿Confirma que desea eliminar definitivamente a <b>{userToDelete.name}</b> ({userToDelete.email})? También se quitarán sus turnos, agenda y registros asociados.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg font-medium">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setUserToDelete(null); setDeleteError(null); }}
+                className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 cursor-pointer font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-1.5 bg-rose-600 text-white font-semibold rounded-lg hover:bg-rose-700 cursor-pointer"
+              >
+                Eliminar Definitivamente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

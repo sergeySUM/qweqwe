@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { User, UserRole } from '../../types/hospital';
 import { storageService } from '../../services/storageService';
+import { hashPassword } from '../../services/authService';
 import { 
-  Users2, 
   Search, 
   Plus, 
   Edit, 
@@ -12,8 +12,13 @@ import {
   Stethoscope, 
   HeartPulse, 
   Building2,
-  CheckCircle2,
-  KeyRound
+  KeyRound,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface UserManagementProps {
@@ -28,9 +33,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Modal State
+  // Modal & Password Visibility State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showAllPasswords, setShowAllPasswords] = useState(true);
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
+  const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
+  const [showModalPassword, setShowModalPassword] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -45,6 +56,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
     consultationFee?: number;
     insuranceName?: string;
     billingCuit?: string;
+    password?: string;
   }>({
     name: '',
     email: '',
@@ -56,7 +68,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
     medicalLicense: 'MN 100.000',
     consultationFee: 25000,
     insuranceName: 'OSDE 310',
-    billingCuit: ''
+    billingCuit: '',
+    password: ''
   });
 
   const filteredUsers = useMemo(() => {
@@ -85,8 +98,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
       medicalLicense: 'MN 150.000',
       consultationFee: 25000,
       insuranceName: '',
-      billingCuit: ''
+      billingCuit: '',
+      password: ''
     });
+    setShowModalPassword(false);
     setIsModalOpen(true);
   };
 
@@ -103,8 +118,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
       medicalLicense: user.medicalLicense || '',
       consultationFee: user.consultationFee || 20000,
       insuranceName: user.insuranceName || '',
-      billingCuit: user.billingCuit || ''
+      billingCuit: user.billingCuit || '',
+      password: user.plainPassword || ''
     });
+    setShowModalPassword(false);
     setIsModalOpen(true);
   };
 
@@ -112,7 +129,35 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
     storageService.toggleUserStatus(userId);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const toggleRowPassword = (userId: string) => {
+    setRevealedPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
+
+  const handleCopyPassword = async (userId: string, password: string) => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopiedUserId(userId);
+      setTimeout(() => setCopiedUserId(prev => (prev === userId ? null : prev)), 2000);
+    } catch {
+      // Clipboard API fallback ignored
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+    const result = storageService.deleteUser(userToDelete.id);
+    if (result.success) {
+      setUserToDelete(null);
+      setDeleteError(null);
+    } else {
+      setDeleteError(result.error || 'No se pudo eliminar el usuario.');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     let specialtyName = undefined;
@@ -120,6 +165,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
       const match = specialties.find(s => s.id === formData.specialtyId);
       if (match) specialtyName = match.name;
     }
+
+    const trimmedPassword = formData.password?.trim();
+    const passwordHash = trimmedPassword ? await hashPassword(trimmedPassword) : undefined;
 
     storageService.saveUser({
       ...(editingUser ? { id: editingUser.id } : {}),
@@ -129,6 +177,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
       phone: formData.phone,
       role: formData.role,
       status: formData.status,
+      ...(passwordHash ? { passwordHash, plainPassword: trimmedPassword, authProvider: 'local' as const } : {}),
       specialtyId: formData.role === 'MEDICO' ? formData.specialtyId : undefined,
       specialtyName: formData.role === 'MEDICO' ? specialtyName : undefined,
       medicalLicense: formData.role === 'MEDICO' ? formData.medicalLicense : undefined,
@@ -223,13 +272,23 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
 
       {/* Users Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden text-xs">
-        <div className="px-6 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <div className="px-6 py-3 border-b border-slate-200 bg-slate-50 flex flex-wrap justify-between items-center gap-2">
           <span className="font-semibold text-slate-800">
             Padrón de Usuarios del Sistema ({filteredUsers.length} registros)
           </span>
-          <span className="text-[11px] text-slate-500 font-mono">
-            Control de Acceso Basado en Roles (RBAC)
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowAllPasswords(prev => !prev)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer"
+            >
+              {showAllPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              <span>{showAllPasswords ? 'Ocultar Contraseñas' : 'Ver Todas las Contraseñas'}</span>
+            </button>
+            <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+              Control de Acceso Basado en Roles (RBAC)
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -239,6 +298,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
                 <th className="py-3 px-4">Usuario / Nombre</th>
                 <th className="py-3 px-4">Rol Asignado</th>
                 <th className="py-3 px-4">DNI / Contacto</th>
+                <th className="py-3 px-4">Contraseña</th>
                 <th className="py-3 px-4">Detalle Específico</th>
                 <th className="py-3 px-4">Estado</th>
                 <th className="py-3 px-4 text-right">Acciones</th>
@@ -274,6 +334,48 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
                       <div className="text-[11px] text-slate-400">{user.phone}</div>
                     </td>
 
+                    <td className="py-3 px-4">
+                      {user.plainPassword ? (
+                        <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+                          <span className="font-mono text-[11px] text-slate-900 select-all">
+                            {showAllPasswords || revealedPasswords[user.id] ? user.plainPassword : '••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRowPassword(user.id)}
+                            title={showAllPasswords || revealedPasswords[user.id] ? 'Ocultar' : 'Mostrar'}
+                            className="text-slate-400 hover:text-slate-700 cursor-pointer p-0.5"
+                          >
+                            {showAllPasswords || revealedPasswords[user.id] ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPassword(user.id, user.plainPassword!)}
+                            title="Copiar contraseña"
+                            className="text-slate-400 hover:text-cyan-700 cursor-pointer p-0.5"
+                          >
+                            {copiedUserId === user.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(user)}
+                          className="text-[11px] text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded font-medium cursor-pointer"
+                        >
+                          Google / Asignar clave
+                        </button>
+                      )}
+                    </td>
+
                     <td className="py-3 px-4 text-slate-600">
                       {user.role === 'MEDICO' && (
                         <div>
@@ -301,7 +403,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
                     </td>
 
                     <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEdit(user)}
                           className="p-1.5 text-slate-600 hover:text-cyan-700 hover:bg-slate-100 rounded transition-colors cursor-pointer"
@@ -320,6 +422,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
                         >
                           {user.status === 'ACTIVO' ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                         </button>
+                        {user.email.toLowerCase() !== 'seter7712@gmail.com' && (
+                          <button
+                            onClick={() => { setDeleteError(null); setUserToDelete(user); }}
+                            className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                            title="Eliminar Usuario de la Base de Datos"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -390,6 +501,29 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
                     onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-900"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  {editingUser ? 'Contraseña de Acceso (ver o modificar)' : 'Contraseña de Acceso (Opcional)'}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showModalPassword ? 'text' : 'password'}
+                    minLength={6}
+                    placeholder={editingUser ? 'Sin contraseña asignada' : 'Mín. 6 caracteres para ingreso con correo'}
+                    value={formData.password || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full pl-3 pr-9 py-1.5 border border-slate-300 rounded-lg text-slate-900 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowModalPassword(prev => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    {showModalPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
               </div>
 
@@ -495,6 +629,50 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE USER CONFIRMATION MODAL */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 p-6 space-y-4 text-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-rose-100 text-rose-700 rounded-lg shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Eliminar Usuario de la Base de Datos
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  ¿Confirma que desea eliminar definitivamente a <b>{userToDelete.name}</b> ({userToDelete.email})? También se quitarán sus turnos, agenda y registros asociados.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg font-medium">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setUserToDelete(null); setDeleteError(null); }}
+                className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 cursor-pointer font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-1.5 bg-rose-600 text-white font-semibold rounded-lg hover:bg-rose-700 cursor-pointer"
+              >
+                Eliminar Definitivamente
+              </button>
+            </div>
           </div>
         </div>
       )}

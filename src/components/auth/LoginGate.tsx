@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../../types/hospital';
 import { storageService } from '../../services/storageService';
-import { authService, GoogleAuthResult } from '../../services/authService';
+import { authService, AuthResult } from '../../services/authService';
 import { SelectedServiceAd } from '../landing/MedicalLandingPage';
-import { 
-  Building2, 
-  Lock, 
-  CheckCircle2, 
-  UserPlus, 
+import {
+  Building2,
+  Lock,
+  CheckCircle2,
+  UserPlus,
   Ban,
-  ArrowLeft
+  ArrowLeft,
+  Mail,
+  KeyRound,
+  Eye,
+  EyeOff,
+  LogIn
 } from 'lucide-react';
 
 interface LoginGateProps {
   onLoginSuccess: (user: User) => void;
-  initialTab?: 'google' | 'register';
+  initialTab?: 'login' | 'register';
   selectedServiceAd?: SelectedServiceAd | null;
   onBackToLanding?: () => void;
 }
@@ -25,14 +30,15 @@ export const LoginGate: React.FC<LoginGateProps> = ({
   selectedServiceAd = null,
   onBackToLanding
 }) => {
-  const [activeTab, setActiveTab] = useState<'google' | 'register'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDomainError, setIsDomainError] = useState(false);
 
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab, selectedServiceAd]);
+  // Email & Password Login form state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // New patient registration form state
   const [regForm, setRegForm] = useState({
@@ -40,13 +46,37 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     dni: '',
     email: '',
     phone: '',
+    password: '',
+    confirmPassword: '',
     insuranceName: 'Particular / Privado',
     insuranceNumber: ''
   });
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
-  const users = storageService.getUsers();
+  useEffect(() => {
+    setActiveTab(initialTab);
+    setErrorMessage(null);
+  }, [initialTab, selectedServiceAd]);
+
   const settings = storageService.getSettings();
   const currentHostname = typeof window !== 'undefined' ? window.location.hostname : '';
+
+  // Email + Password Sign-In Handler
+  const handleEmailPasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
+    setIsDomainError(false);
+
+    const result: AuthResult = await authService.loginWithEmailPassword(loginEmail, loginPassword);
+    setLoading(false);
+
+    if (result.success && result.user) {
+      onLoginSuccess(result.user);
+    } else {
+      setErrorMessage(result.error || 'No se pudo iniciar sesión con correo y contraseña.');
+    }
+  };
 
   // Google Sign-In Handler
   const handleGoogleSignIn = async () => {
@@ -54,7 +84,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     setErrorMessage(null);
     setIsDomainError(false);
 
-    const result: GoogleAuthResult = await authService.loginWithGoogle('PACIENTE');
+    const result: AuthResult = await authService.loginWithGoogle('PACIENTE');
     setLoading(false);
 
     if (result.success && result.user) {
@@ -70,37 +100,43 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     }
   };
 
-  // New Patient Register Handler (RF-01)
-  const handlePatientRegister = (e: React.FormEvent) => {
+  // New Patient Register Handler
+  const handlePatientRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setIsDomainError(false);
 
-    if (!regForm.name || !regForm.dni || !regForm.email || !regForm.phone) {
+    if (!regForm.name || !regForm.dni || !regForm.email || !regForm.phone || !regForm.password) {
       setErrorMessage('Por favor complete todos los campos obligatorios.');
       return;
     }
 
-    // Verify DNI not already registered
-    const existing = users.find(u => u.dni === regForm.dni || u.email.toLowerCase() === regForm.email.toLowerCase());
-    if (existing) {
-      setErrorMessage(`Ya existe una cuenta registrada con ese DNI o correo (${existing.name}). Por favor inicie sesión.`);
+    if (regForm.password.length < 6) {
+      setErrorMessage('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
-    const newUser = storageService.saveUser({
+    if (regForm.password !== regForm.confirmPassword) {
+      setErrorMessage('Las contraseñas ingresadas no coinciden.');
+      return;
+    }
+
+    setLoading(true);
+    const result = await authService.registerWithEmailPassword({
       name: regForm.name,
       dni: regForm.dni,
       email: regForm.email,
       phone: regForm.phone,
+      password: regForm.password,
       insuranceName: regForm.insuranceName,
-      insuranceNumber: regForm.insuranceNumber,
-      role: 'PACIENTE',
-      status: 'ACTIVO'
+      insuranceNumber: regForm.insuranceNumber
     });
+    setLoading(false);
 
-    const result = storageService.setActiveUserId(newUser.id);
     if (result.success && result.user) {
       onLoginSuccess(result.user);
+    } else {
+      setErrorMessage(result.error || 'No se pudo completar el registro.');
     }
   };
 
@@ -141,25 +177,20 @@ export const LoginGate: React.FC<LoginGateProps> = ({
         <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold">
           <button
             type="button"
-            onClick={() => { setActiveTab('google'); setErrorMessage(null); }}
+            onClick={() => { setActiveTab('login'); setErrorMessage(null); setIsDomainError(false); }}
             className={`flex-1 py-3 px-2 text-center transition-colors cursor-pointer flex items-center justify-center gap-1.5 border-b-2 ${
-              activeTab === 'google'
+              activeTab === 'login'
                 ? 'border-cyan-700 text-cyan-900 bg-white font-bold'
                 : 'border-transparent text-slate-600 hover:text-slate-900'
             }`}
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-            </svg>
-            <span>Google</span>
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Iniciar Sesión</span>
           </button>
 
           <button
             type="button"
-            onClick={() => { setActiveTab('register'); setErrorMessage(null); }}
+            onClick={() => { setActiveTab('register'); setErrorMessage(null); setIsDomainError(false); }}
             className={`flex-1 py-3 px-2 text-center transition-colors cursor-pointer flex items-center justify-center gap-1.5 border-b-2 ${
               activeTab === 'register'
                 ? 'border-cyan-700 text-cyan-900 bg-white font-bold'
@@ -188,21 +219,81 @@ export const LoginGate: React.FC<LoginGateProps> = ({
             </div>
           )}
 
-          {/* TAB 1: GOOGLE AUTH */}
-          {activeTab === 'google' && (
+          {/* TAB 1: LOGIN (EMAIL & PASSWORD + GOOGLE) */}
+          {activeTab === 'login' && (
             <div className="space-y-4 text-xs">
-              <p className="text-slate-600 text-center leading-relaxed">
-                Autenticación corporativa y de pacientes con cuenta de Google verificada por Firebase.
-              </p>
+              <form onSubmit={handleEmailPasswordLogin} className="space-y-3">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">
+                    Correo Electrónico *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="nombre@correo.com"
+                      value={loginEmail}
+                      onChange={e => setLoginEmail(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-cyan-600 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">
+                    Contraseña *
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type={showLoginPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={e => setLoginPassword(e.target.value)}
+                      className="w-full pl-9 pr-9 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-cyan-600 focus:outline-hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(prev => !prev)}
+                      aria-label={showLoginPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5"
+                    >
+                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>{loading ? 'Verificando credenciales...' : 'Ingresar con Correo y Contraseña'}</span>
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="relative flex items-center py-1">
+                <div className="flex-grow border-t border-slate-200" />
+                <span className="shrink mx-3 text-[11px] font-medium text-slate-400">
+                  o continúe con
+                </span>
+                <div className="flex-grow border-t border-slate-200" />
+              </div>
 
               {/* Real Google popup trigger */}
               <button
                 type="button"
                 disabled={loading}
                 onClick={handleGoogleSignIn}
-                className="w-full py-3 px-4 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl border border-slate-300 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-3 disabled:opacity-60"
+                className="w-full py-2.5 px-4 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl border border-slate-300 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-3 disabled:opacity-60"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
@@ -213,7 +304,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
             </div>
           )}
 
-          {/* TAB 3: REGISTER NEW PATIENT */}
+          {/* TAB 2: REGISTER NEW PATIENT */}
           {activeTab === 'register' && (
             <form onSubmit={handlePatientRegister} className="space-y-3 text-xs">
               {selectedServiceAd && (
@@ -231,7 +322,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               )}
 
               <p className="text-slate-600 leading-relaxed text-[11px]">
-                Cree su cuenta de paciente para reservar turnos online, acceder a recetas digitales y resultados de estudios.
+                Cree su cuenta de paciente con correo electrónico y contraseña para reservar turnos online y descargar recetas o estudios.
               </p>
 
               <div>
@@ -276,11 +367,51 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   placeholder="nombre@correo.com"
                   value={regForm.email}
                   onChange={e => setRegForm(prev => ({ ...prev, email: e.target.value }))}
                   className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-900"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Contraseña *</label>
+                  <div className="relative">
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="Mín. 6 caracteres"
+                      value={regForm.password}
+                      onChange={e => setRegForm(prev => ({ ...prev, password: e.target.value }))}
+                      className="w-full pl-3 pr-8 py-1.5 border border-slate-300 rounded-lg text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(prev => !prev)}
+                      aria-label={showRegPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Confirmar Clave *</label>
+                  <input
+                    type={showRegPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    placeholder="Repita la clave"
+                    value={regForm.confirmPassword}
+                    onChange={e => setRegForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-900"
+                  />
+                </div>
               </div>
 
               <div>
@@ -301,11 +432,29 @@ export const LoginGate: React.FC<LoginGateProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-cyan-700 hover:bg-cyan-800 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2 mt-2"
+                disabled={loading}
+                className="w-full py-2.5 px-4 bg-cyan-700 hover:bg-cyan-800 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Registrarme e Ingresar al Sistema</span>
+                <span>{loading ? 'Creando cuenta...' : 'Registrarme e Ingresar al Sistema'}</span>
               </button>
+
+              <div className="pt-2 border-t border-slate-100 text-center">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={handleGoogleSignIn}
+                  className="w-full py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-lg border border-slate-300 transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  <span>O registrarme con Google</span>
+                </button>
+              </div>
             </form>
           )}
         </div>

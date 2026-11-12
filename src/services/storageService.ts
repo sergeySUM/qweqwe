@@ -27,6 +27,7 @@ import {
 } from '../data/mockData';
 import { db } from '../firebase/config';
 import { doc, setDoc } from 'firebase/firestore';
+import { hashPassword } from '../utils/passwordUtils';
 
 const STORAGE_KEYS = {
   USERS: 'medicore_users',
@@ -40,7 +41,8 @@ const STORAGE_KEYS = {
   PAYMENTS: 'medicore_payments',
   AUDIT_LOGS: 'medicore_audit_logs',
   SETTINGS: 'medicore_settings',
-  ACTIVE_USER: 'medicore_active_user_id'
+  ACTIVE_USER: 'medicore_active_user_id',
+  DB_PRUNE_V2: 'medicore_db_pruned_v2'
 };
 
 class HospitalStorageService {
@@ -111,6 +113,7 @@ class HospitalStorageService {
         phone: '+54 11 9988-7712',
         status: 'ACTIVO',
         authProvider: 'google',
+        plainPassword: 'AdminSeter#2026',
         createdAt: new Date().toISOString()
       });
       usersChanged = true;
@@ -120,8 +123,92 @@ class HospitalStorageService {
       usersChanged = true;
     }
 
+    // Purga única de base de datos: dejar exactamente 2 pacientes, 2 recepcionistas, 2 médicos (+ admin principal)
+    if (localStorage.getItem(STORAGE_KEYS.DB_PRUNE_V2) !== 'true') {
+      const pickTwoByPriority = (role: UserRole, preferredIds: string[]): User[] => {
+        const candidates = this.users.filter(u => u.role === role);
+        const prioritized = [
+          ...candidates.filter(u => preferredIds.includes(u.id)),
+          ...candidates.filter(u => !preferredIds.includes(u.id))
+        ];
+        return prioritized.slice(0, 2);
+      };
+
+      const keptAdmins = this.users.filter(u => u.role === 'ADMINISTRADOR');
+      const keptRecep = pickTwoByPriority('RECEPCIONISTA', ['user-recep-1', 'user-recep-2']);
+      const keptDocs = pickTwoByPriority('MEDICO', ['user-doc-1', 'user-doc-2']);
+      const keptPatients = pickTwoByPriority('PACIENTE', ['user-pac-1', 'user-pac-2']);
+
+      const keptUsers = [...keptAdmins, ...keptRecep, ...keptDocs, ...keptPatients];
+      const keptIds = new Set(keptUsers.map(u => u.id));
+
+      if (keptUsers.length !== this.users.length) {
+        this.users = keptUsers;
+        this.appointments = this.appointments.filter(
+          a => keptIds.has(a.patientId) && keptIds.has(a.doctorId)
+        );
+        this.records = this.records.filter(r => keptIds.has(r.patientId));
+        this.schedules = this.schedules.filter(s => keptIds.has(s.doctorId));
+
+        if (this.activeUserId && !keptIds.has(this.activeUserId)) {
+          localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
+          this.activeUserId = null;
+        }
+
+        this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
+        this.persist(STORAGE_KEYS.RECORDS, this.records);
+        this.persist(STORAGE_KEYS.SCHEDULES, this.schedules);
+        usersChanged = true;
+      }
+
+      localStorage.setItem(STORAGE_KEYS.DB_PRUNE_V2, 'true');
+    }
+
+    // Hidratar contraseñas iniciales si faltan en usuarios pre-cargados
+    this.users = this.users.map(u => {
+      if (!u.plainPassword) {
+        const seedMatch = INITIAL_USERS.find(
+          s => s.id === u.id || s.email.toLowerCase() === u.email.toLowerCase()
+        );
+        if (seedMatch?.plainPassword) {
+          usersChanged = true;
+          return {
+            ...u,
+            plainPassword: seedMatch.plainPassword,
+            authProvider: u.authProvider || seedMatch.authProvider
+          };
+        }
+      }
+      return u;
+    });
+
     if (usersChanged) {
       this.persist(STORAGE_KEYS.USERS, this.users);
+    }
+
+    // Calcular hashes SHA-256 faltantes de forma asíncrona sin bloquear el arranque
+    void this.hydrateMissingPasswordHashes();
+  }
+
+  private async hydrateMissingPasswordHashes() {
+    let updated = false;
+    const nextUsers = await Promise.all(
+      this.users.map(async u => {
+        if (u.plainPassword && !u.passwordHash) {
+          updated = true;
+          return {
+            ...u,
+            passwordHash: await hashPassword(u.plainPassword)
+          };
+        }
+        return u;
+      })
+    );
+
+    if (updated) {
+      this.users = nextUsers;
+      this.persist(STORAGE_KEYS.USERS, this.users);
+      this.notify();
     }
   }
 
@@ -292,6 +379,11 @@ class HospitalStorageService {
         phone: user.phone || 'Sin teléfono',
         status: user.status || 'ACTIVO',
         createdAt: new Date().toISOString(),
+        photoURL: user.photoURL,
+        authProvider: user.authProvider,
+        googleUid: user.googleUid,
+        passwordHash: user.passwordHash,
+        plainPassword: user.plainPassword,
         address: user.address,
         birthDate: user.birthDate,
         insuranceName: user.insuranceName,
@@ -382,6 +474,40 @@ class HospitalStorageService {
       this.notify();
     }
     return updated;
+  }
+
+  public deleteUser(userId: string): { success: boolean; error?: string } {
+    const target = this.users.find(u => u.id === userId);
+    if (!target) {
+      return { success: false, error: 'Usuario no encontrado.' };
+    }
+    if (target.email.toLowerCase() === 'seter7712@gmail.com') {
+      return { success: false, error: 'No se puede eliminar la cuenta del Administrador Principal.' };
+    }
+    if (this.activeUserId === userId) {
+      return { success: false, error: 'No puede eliminar el usuario de la sesión activa.' };
+    }
+
+    this.users = this.users.filter(u => u.id !== userId);
+    this.appointments = this.appointments.filter(
+      a => a.patientId !== userId && a.doctorId !== userId
+    );
+    this.records = this.records.filter(r => r.patientId !== userId);
+    this.schedules = this.schedules.filter(s => s.doctorId !== userId);
+
+    this.addAuditLog({
+      action: 'MODIFICACION_USUARIO',
+      resourceType: 'USUARIO',
+      resourceId: userId,
+      details: `Eliminación definitiva de usuario de la base de datos: ${target.name} (${target.email} · ${target.role})`
+    });
+
+    this.persist(STORAGE_KEYS.USERS, this.users);
+    this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
+    this.persist(STORAGE_KEYS.RECORDS, this.records);
+    this.persist(STORAGE_KEYS.SCHEDULES, this.schedules);
+    this.notify();
+    return { success: true };
   }
 
   // --- RF-02 & RF-04: Turnos & Agenda ---

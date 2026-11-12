@@ -23,7 +23,7 @@ export const INITIAL_SPECIALTIES: Specialty[] = [
 ];
 
 export const INITIAL_USERS: User[] = [
-  // Administradores
+  // Administrador Principal
   {
     id: 'user-admin-seter',
     email: 'seter7712@gmail.com',
@@ -33,9 +33,10 @@ export const INITIAL_USERS: User[] = [
     phone: '+54 11 9988-7712',
     status: 'ACTIVO',
     authProvider: 'google',
+    plainPassword: 'AdminSeter#2026',
     createdAt: '2025-01-01T08:00:00.000Z'
   },
-  // Recepcionistas
+  // Recepcionistas (2)
   {
     id: 'user-recep-1',
     email: 'recepcion@medicore.com',
@@ -44,6 +45,8 @@ export const INITIAL_USERS: User[] = [
     dni: '35210984',
     phone: '+54 11 5123-7744',
     status: 'ACTIVO',
+    authProvider: 'local',
+    plainPassword: 'Recep1#2026',
     createdAt: '2025-02-01T08:30:00.000Z'
   },
   {
@@ -54,9 +57,11 @@ export const INITIAL_USERS: User[] = [
     dni: '38192340',
     phone: '+54 11 6789-1122',
     status: 'ACTIVO',
+    authProvider: 'local',
+    plainPassword: 'Recep2#2026',
     createdAt: '2025-03-15T09:00:00.000Z'
   },
-  // Médicos
+  // Médicos (2)
   {
     id: 'user-doc-1',
     email: 'dr.morales@medicore.com',
@@ -65,6 +70,8 @@ export const INITIAL_USERS: User[] = [
     dni: '26458912',
     phone: '+54 11 4782-9011',
     status: 'ACTIVO',
+    authProvider: 'local',
+    plainPassword: 'Medico1#2026',
     createdAt: '2025-01-15T09:00:00.000Z',
     specialtyId: 'esp-1',
     specialtyName: 'Cardiología',
@@ -79,41 +86,15 @@ export const INITIAL_USERS: User[] = [
     dni: '31298450',
     phone: '+54 11 5543-9821',
     status: 'ACTIVO',
+    authProvider: 'local',
+    plainPassword: 'Medico2#2026',
     createdAt: '2025-01-20T10:00:00.000Z',
     specialtyId: 'esp-2',
     specialtyName: 'Pediatría',
     medicalLicense: 'MN 165.432',
     consultationFee: 20000
   },
-  {
-    id: 'user-doc-3',
-    email: 'dr.rossi@medicore.com',
-    name: 'Dr. Esteban Rossi',
-    role: 'MEDICO',
-    dni: '27891234',
-    phone: '+54 11 4980-1200',
-    status: 'ACTIVO',
-    createdAt: '2025-02-10T11:00:00.000Z',
-    specialtyId: 'esp-3',
-    specialtyName: 'Traumatología y Ortopedia',
-    medicalLicense: 'MN 138.712',
-    consultationFee: 24000
-  },
-  {
-    id: 'user-doc-4',
-    email: 'dr.castro@medicore.com',
-    name: 'Dr. Hernán Castro',
-    role: 'MEDICO',
-    dni: '28456123',
-    phone: '+54 11 4321-8765',
-    status: 'ACTIVO',
-    createdAt: '2025-02-18T10:30:00.000Z',
-    specialtyId: 'esp-4',
-    specialtyName: 'Clínica Médica',
-    medicalLicense: 'MN 129.540',
-    consultationFee: 18000
-  },
-  // Pacientes
+  // Pacientes (2)
   {
     id: 'user-pac-1',
     email: 'lucia.fernandez@gmail.com',
@@ -122,6 +103,8 @@ export const INITIAL_USERS: User[] = [
     dni: '36987412',
     phone: '+54 11 5987-1234',
     status: 'ACTIVO',
+    authProvider: 'local',
+    plainPassword: 'Paciente1#2026',
     createdAt: '2025-03-01T14:20:00.000Z',
     birthDate: '1992-06-14',
     address: 'Av. Corrientes 3450, Piso 4B, CABA',
@@ -137,38 +120,14 @@ export const INITIAL_USERS: User[] = [
     dni: '24158930',
     phone: '+54 11 6321-9988',
     status: 'ACTIVO',
+    authProvider: 'local',
+    plainPassword: 'Paciente2#2026',
     createdAt: '2025-03-05T11:15:00.000Z',
     birthDate: '1974-11-28',
     address: 'Calle Juncal 1820, CABA',
     insuranceName: 'Swiss Medical SMG20',
     insuranceNumber: 'SW-458190-02',
     billingCuit: '20-24158930-9'
-  },
-  {
-    id: 'user-pac-3',
-    email: 'sofia.alvarez@gmail.com',
-    name: 'Sofía Álvarez',
-    role: 'PACIENTE',
-    dni: '42567890',
-    phone: '+54 11 4111-2233',
-    status: 'ACTIVO',
-    createdAt: '2025-03-12T16:40:00.000Z',
-    birthDate: '2000-03-22',
-    address: 'Av. Santa Fe 2100, CABA',
-    insuranceName: 'Galeno Azul',
-    insuranceNumber: 'GA-771239-01',
-    billingCuit: '27-42567890-3'
-  },
-  {
-    id: 'user-susp-1',
-    email: 'carlos.valenzuela@susp.com',
-    name: 'Carlos Valenzuela (Suspendido)',
-    role: 'PACIENTE',
-    dni: '18999888',
-    phone: '+54 11 0000-9999',
-    status: 'SUSPENDIDO',
-    createdAt: '2025-01-01T00:00:00.000Z',
-    insuranceName: 'Particular / Privado'
   }
 ];
 
@@ -196,26 +155,6 @@ export const INITIAL_SCHEDULES: DoctorSchedule[] = [
     breakRanges: [
       { start: '12:00', end: '12:40' }
     ]
-  },
-  {
-    doctorId: 'user-doc-3',
-    workingDays: [2, 4], // Mar, Jue
-    startHour: '10:00',
-    endHour: '18:00',
-    consultationDuration: 30,
-    vacationRanges: [],
-    breakRanges: [
-      { start: '13:30', end: '14:30' }
-    ]
-  },
-  {
-    doctorId: 'user-doc-4',
-    workingDays: [1, 2, 3, 4, 5],
-    startHour: '08:00',
-    endHour: '14:00',
-    consultationDuration: 20,
-    vacationRanges: [],
-    breakRanges: []
   }
 ];
 
@@ -263,46 +202,6 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
     copayAmount: 4200,
     isPaid: false,
     createdAt: '2026-10-02T11:20:00.000Z'
-  },
-  {
-    id: 'apt-003',
-    patientId: 'user-pac-3',
-    patientName: 'Sofía Álvarez',
-    patientDni: '42567890',
-    patientPhone: '+54 11 4111-2233',
-    doctorId: 'user-doc-4',
-    doctorName: 'Dr. Hernán Castro',
-    specialtyId: 'esp-4',
-    specialtyName: 'Clínica Médica',
-    date: todayStr,
-    time: '11:00',
-    durationMinutes: 20,
-    status: 'RESERVADO',
-    reason: 'Certificado de aptitud física para natación universitaria',
-    insuranceName: 'Galeno Azul',
-    copayAmount: 2000,
-    isPaid: false,
-    createdAt: '2026-10-03T15:00:00.000Z'
-  },
-  {
-    id: 'apt-004',
-    patientId: 'user-pac-1',
-    patientName: 'Lucía Fernández',
-    patientDni: '36987412',
-    patientPhone: '+54 11 5987-1234',
-    doctorId: 'user-doc-3',
-    doctorName: 'Dr. Esteban Rossi',
-    specialtyId: 'esp-3',
-    specialtyName: 'Traumatología y Ortopedia',
-    date: '2026-10-08',
-    time: '14:30',
-    durationMinutes: 30,
-    status: 'RESERVADO',
-    reason: 'Dolor en rodilla derecha posterior a actividad física',
-    insuranceName: 'OSDE 310',
-    copayAmount: 4000,
-    isPaid: false,
-    createdAt: '2026-10-04T09:30:00.000Z'
   },
   {
     id: 'apt-005',
@@ -362,21 +261,6 @@ export const INITIAL_MEDICAL_RECORDS: MedicalRecord[] = [
       relationship: 'Cónyuge'
     },
     lastUpdated: '2026-09-15T11:00:00.000Z'
-  },
-  {
-    id: 'rec-003',
-    patientId: 'user-pac-3',
-    bloodType: 'B+',
-    allergies: [],
-    chronicDiseases: ['Rinitis alérgica estacional'],
-    familyHistory: 'Sin antecedentes familiares cardiovasculares precoces.',
-    surgicalHistory: 'Ninguna intervención previa.',
-    emergencyContact: {
-      name: 'Patricia Morales (Madre)',
-      phone: '+54 11 7788-9900',
-      relationship: 'Madre'
-    },
-    lastUpdated: '2026-08-20T10:00:00.000Z'
   }
 ];
 
