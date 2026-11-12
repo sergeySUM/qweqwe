@@ -43,7 +43,8 @@ const STORAGE_KEYS = {
   SETTINGS: 'medicore_settings',
   ACTIVE_USER: 'medicore_active_user_id',
   DB_PRUNE_V2: 'medicore_db_pruned_v2',
-  DB_CLEAR_PAYMENTS_V1: 'medicore_payments_cleared_v1'
+  DB_CLEAR_PAYMENTS_V1: 'medicore_payments_cleared_v1',
+  DB_CLEAR_APTS_PAYMENTS_V1: 'medicore_apts_payments_cleared_v1'
 };
 
 class HospitalStorageService {
@@ -187,28 +188,13 @@ class HospitalStorageService {
       this.persist(STORAGE_KEYS.USERS, this.users);
     }
 
-    // Limpiar historial de comprobantes precargados de muestra (manteniendo los nuevos reales)
-    if (localStorage.getItem(STORAGE_KEYS.DB_CLEAR_PAYMENTS_V1) !== 'true') {
-      const seedPaymentIds = new Set(['pay-001', 'pay-002']);
-      const prevPaymentsLen = this.payments.length;
-      this.payments = this.payments.filter(p => !seedPaymentIds.has(p.id));
-
-      const validPaymentIds = new Set(this.payments.map(p => p.id));
-      let aptsChanged = false;
-      this.appointments = this.appointments.map(a => {
-        if (a.paymentId && !validPaymentIds.has(a.paymentId)) {
-          aptsChanged = true;
-          return { ...a, isPaid: false, paymentId: undefined };
-        }
-        return a;
-      });
-
-      if (this.payments.length !== prevPaymentsLen) {
-        this.persist(STORAGE_KEYS.PAYMENTS, this.payments);
-      }
-      if (aptsChanged) {
-        this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
-      }
+    // Eliminar todos los pagos y turnos existentes de la base de datos (una sola vez)
+    if (localStorage.getItem(STORAGE_KEYS.DB_CLEAR_APTS_PAYMENTS_V1) !== 'true') {
+      this.payments = [];
+      this.appointments = [];
+      this.persist(STORAGE_KEYS.PAYMENTS, this.payments);
+      this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
+      localStorage.setItem(STORAGE_KEYS.DB_CLEAR_APTS_PAYMENTS_V1, 'true');
       localStorage.setItem(STORAGE_KEYS.DB_CLEAR_PAYMENTS_V1, 'true');
     }
 

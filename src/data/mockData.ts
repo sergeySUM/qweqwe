@@ -158,71 +158,7 @@ export const INITIAL_SCHEDULES: DoctorSchedule[] = [
   }
 ];
 
-const todayStr = '2026-10-05';
-
-export const INITIAL_APPOINTMENTS: Appointment[] = [
-  {
-    id: 'apt-001',
-    patientId: 'user-pac-1',
-    patientName: 'Lucía Fernández',
-    patientDni: '36987412',
-    patientPhone: '+54 11 5987-1234',
-    doctorId: 'user-doc-1',
-    doctorName: 'Dr. Martín Morales',
-    specialtyId: 'esp-1',
-    specialtyName: 'Cardiología',
-    date: todayStr,
-    time: '09:00',
-    durationMinutes: 30,
-    status: 'EN_ESPERA',
-    reason: 'Control rutinario de hipertensión y palpitaciones leves',
-    insuranceName: 'OSDE 310',
-    copayAmount: 3500,
-    isPaid: false,
-    notes: 'Paciente ya ingresó a la sala de espera (Triage realizado)',
-    createdAt: '2026-10-01T10:00:00.000Z'
-  },
-  {
-    id: 'apt-002',
-    patientId: 'user-pac-2',
-    patientName: 'Roberto Méndez',
-    patientDni: '24158930',
-    patientPhone: '+54 11 6321-9988',
-    doctorId: 'user-doc-1',
-    doctorName: 'Dr. Martín Morales',
-    specialtyId: 'esp-1',
-    specialtyName: 'Cardiología',
-    date: todayStr,
-    time: '10:00',
-    durationMinutes: 30,
-    status: 'CONFIRMADO',
-    reason: 'Evaluación de prueba de esfuerzo y ajuste de medicación',
-    insuranceName: 'Swiss Medical SMG20',
-    copayAmount: 4200,
-    isPaid: false,
-    createdAt: '2026-10-02T11:20:00.000Z'
-  },
-  {
-    id: 'apt-005',
-    patientId: 'user-pac-2',
-    patientName: 'Roberto Méndez',
-    patientDni: '24158930',
-    patientPhone: '+54 11 6321-9988',
-    doctorId: 'user-doc-1',
-    doctorName: 'Dr. Martín Morales',
-    specialtyId: 'esp-1',
-    specialtyName: 'Cardiología',
-    date: '2026-09-15',
-    time: '10:30',
-    durationMinutes: 30,
-    status: 'FINALIZADO',
-    reason: 'Chequeo anual y laboratorio cardiovascular',
-    insuranceName: 'Swiss Medical SMG20',
-    copayAmount: 4200,
-    isPaid: false,
-    createdAt: '2026-09-01T14:00:00.000Z'
-  }
-];
+export const INITIAL_APPOINTMENTS: Appointment[] = [];
 
 export const INITIAL_MEDICAL_RECORDS: MedicalRecord[] = [
   {
