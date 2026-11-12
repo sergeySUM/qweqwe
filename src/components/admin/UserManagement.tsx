@@ -146,8 +146,6 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono text-cyan-700">
-            <span>RF-11</span>
-            <span>·</span>
             <span className="uppercase">ABM y Control de Cuentas de Usuarios</span>
           </div>
           <h1 className="text-xl font-bold text-slate-900 mt-1">
@@ -165,7 +163,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-xs"
             >
               <KeyRound className="w-4 h-4 text-cyan-200" />
-              <span>Matriz de Derechos (RF-11B)</span>
+              <span>Matriz de Derechos</span>
             </button>
           )}
           <button

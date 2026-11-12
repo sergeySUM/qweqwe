@@ -48,8 +48,6 @@ export const PatientHistoryDownloads: React.FC<PatientHistoryDownloadsProps> = (
       {/* Header */}
       <div className="border-b border-slate-200 pb-4">
         <div className="flex items-center gap-2 text-xs font-mono text-cyan-700">
-          <span>RF-03</span>
-          <span>·</span>
           <span className="uppercase">Descarga de Historial Clínico, Recetas y Órdenes</span>
         </div>
         <h1 className="text-xl font-bold text-slate-900 mt-1">

@@ -26,7 +26,6 @@ interface SidebarProps {
 interface NavItem {
   id: string;
   label: string;
-  rfCode: string;
   icon: React.ReactNode;
 }
 
@@ -35,29 +34,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeTab, onSele
     switch (role) {
       case 'PACIENTE':
         return [
-          { id: 'rf01', label: 'Mi Perfil y Facturación', rfCode: 'RF-01', icon: <UserCircle2 className="w-4 h-4" /> },
-          { id: 'rf02', label: 'Reserva de Turnos', rfCode: 'RF-02', icon: <CalendarDays className="w-4 h-4" /> },
-          { id: 'rf03', label: 'Historial, Recetas y Órdenes', rfCode: 'RF-03', icon: <FileText className="w-4 h-4" /> }
+          { id: 'rf01', label: 'Mi Perfil y Facturación', icon: <UserCircle2 className="w-4 h-4" /> },
+          { id: 'rf02', label: 'Reserva de Turnos', icon: <CalendarDays className="w-4 h-4" /> },
+          { id: 'rf03', label: 'Historial, Recetas y Órdenes', icon: <FileText className="w-4 h-4" /> }
         ];
       case 'RECEPCIONISTA':
         return [
-          { id: 'rf04', label: 'Agenda Global de Médicos', rfCode: 'RF-04', icon: <CalendarRange className="w-4 h-4" /> },
-          { id: 'rf05', label: 'Admisión y Sala de Espera', rfCode: 'RF-05', icon: <UserPlus className="w-4 h-4" /> },
-          { id: 'rf06', label: 'Control de Caja y Pagos', rfCode: 'RF-06', icon: <Receipt className="w-4 h-4" /> }
+          { id: 'rf04', label: 'Agenda Global de Médicos', icon: <CalendarRange className="w-4 h-4" /> },
+          { id: 'rf05', label: 'Admisión y Sala de Espera', icon: <UserPlus className="w-4 h-4" /> },
+          { id: 'rf06', label: 'Control de Caja y Pagos', icon: <Receipt className="w-4 h-4" /> }
         ];
       case 'MEDICO':
         return [
-          { id: 'rf07', label: 'Ficha Clínica de Pacientes', rfCode: 'RF-07', icon: <ClipboardList className="w-4 h-4" /> },
-          { id: 'rf08', label: 'Registro de Evolución', rfCode: 'RF-08', icon: <Activity className="w-4 h-4" /> },
-          { id: 'rf09', label: 'Emisión de Recetas y Órdenes', rfCode: 'RF-09', icon: <Pill className="w-4 h-4" /> },
-          { id: 'rf10', label: 'Mi Horario y Disponibilidad', rfCode: 'RF-10', icon: <Clock className="w-4 h-4" /> }
+          { id: 'rf07', label: 'Ficha Clínica de Pacientes', icon: <ClipboardList className="w-4 h-4" /> },
+          { id: 'rf08', label: 'Registro de Evolución', icon: <Activity className="w-4 h-4" /> },
+          { id: 'rf09', label: 'Emisión de Recetas y Órdenes', icon: <Pill className="w-4 h-4" /> },
+          { id: 'rf10', label: 'Mi Horario y Disponibilidad', icon: <Clock className="w-4 h-4" /> }
         ];
       case 'ADMINISTRADOR':
         return [
-          { id: 'rf11', label: 'ABM de Usuarios y Cuentas', rfCode: 'RF-11', icon: <Users2 className="w-4 h-4" /> },
-          { id: 'rf11_rights', label: 'Matriz de Derechos y Permisos', rfCode: 'RF-11B', icon: <KeyRound className="w-4 h-4" /> },
-          { id: 'rf12', label: 'Auditoría de Accesos (Logs)', rfCode: 'RF-12', icon: <ShieldAlert className="w-4 h-4" /> },
-          { id: 'rf13', label: 'Configuración y Tarifas', rfCode: 'RF-13', icon: <Sliders className="w-4 h-4" /> }
+          { id: 'rf11', label: 'ABM de Usuarios y Cuentas', icon: <Users2 className="w-4 h-4" /> },
+          { id: 'rf11_rights', label: 'Matriz de Derechos y Permisos', icon: <KeyRound className="w-4 h-4" /> },
+          { id: 'rf12', label: 'Auditoría de Accesos (Logs)', icon: <ShieldAlert className="w-4 h-4" /> },
+          { id: 'rf13', label: 'Configuración y Tarifas', icon: <Sliders className="w-4 h-4" /> }
         ];
       default:
         return [];

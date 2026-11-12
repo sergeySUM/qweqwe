@@ -203,7 +203,7 @@ export const UserRightsMatrix: React.FC<UserRightsMatrixProps> = ({ currentUser 
             <span>Niveles de Derechos y Facultades por Rol</span>
           </span>
           <span className="text-[11px] text-slate-400">
-            Los cambios se aplican en tiempo real y quedan registrados en auditoría (RF-12)
+            Los cambios se aplican en tiempo real y quedan registrados en auditoría
           </span>
         </div>
 

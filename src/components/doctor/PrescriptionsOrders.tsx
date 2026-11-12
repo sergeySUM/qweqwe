@@ -175,8 +175,6 @@ export const PrescriptionsOrders: React.FC<PrescriptionsOrdersProps> = ({
       {/* Header */}
       <div className="border-b border-slate-200 pb-4">
         <div className="flex items-center gap-2 text-xs font-mono text-cyan-700">
-          <span>RF-09</span>
-          <span>·</span>
           <span className="uppercase">Emisión de Recetas y Órdenes Médicas</span>
         </div>
         <h1 className="text-xl font-bold text-slate-900 mt-1">

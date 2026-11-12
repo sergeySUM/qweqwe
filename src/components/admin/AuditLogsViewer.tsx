@@ -86,8 +86,6 @@ export const AuditLogsViewer: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono text-cyan-700">
-            <span>RF-12</span>
-            <span>·</span>
             <span className="uppercase">Auditoría de Accesos y Trazabilidad (Logs)</span>
           </div>
           <h1 className="text-xl font-bold text-slate-900 mt-1">
@@ -117,11 +115,11 @@ export const AuditLogsViewer: React.FC = () => {
             className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-900 bg-white"
           >
             <option value="">Todas las acciones...</option>
-            <option value="LECTURA_FICHA">Lectura de Ficha Clínica (RF-07)</option>
-            <option value="REGISTRO_EVOLUCION">Registro de Evolución (RF-08)</option>
-            <option value="EMISION_RECETA">Emisión de Receta (RF-09)</option>
-            <option value="ORDEN_ESTUDIO">Orden de Estudio (RF-09)</option>
-            <option value="COBRO_CAJA">Cobro en Caja (RF-06)</option>
+            <option value="LECTURA_FICHA">Lectura de Ficha Clínica</option>
+            <option value="REGISTRO_EVOLUCION">Registro de Evolución</option>
+            <option value="EMISION_RECETA">Emisión de Receta</option>
+            <option value="ORDEN_ESTUDIO">Orden de Estudio</option>
+            <option value="COBRO_CAJA">Cobro en Caja</option>
             <option value="MODIFICACION_TURNO">Modificación de Turno</option>
             <option value="CANCELACION_TURNO">Cancelación de Turno</option>
             <option value="ALTA_USUARIO">Alta de Usuario</option>

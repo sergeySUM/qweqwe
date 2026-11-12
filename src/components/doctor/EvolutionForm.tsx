@@ -114,8 +114,6 @@ export const EvolutionForm: React.FC<EvolutionFormProps> = ({
       {/* Header */}
       <div className="border-b border-slate-200 pb-4">
         <div className="flex items-center gap-2 text-xs font-mono text-cyan-700">
-          <span>RF-08</span>
-          <span>·</span>
           <span className="uppercase">Registro de Evolución Médica</span>
         </div>
         <h1 className="text-xl font-bold text-slate-900 mt-1">

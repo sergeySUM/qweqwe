@@ -120,8 +120,6 @@ export const CashRegister: React.FC<CashRegisterProps> = ({ currentUser }) => {
       {/* Header */}
       <div className="border-b border-slate-200 pb-4">
         <div className="flex items-center gap-2 text-xs font-mono text-cyan-700">
-          <span>RF-06</span>
-          <span>·</span>
           <span className="uppercase">Control de Caja y Facturación Oficial</span>
         </div>
         <h1 className="text-xl font-bold text-slate-900 mt-1">
