@@ -21,6 +21,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ patient 
   const specialties = storageService.getSpecialties();
   const doctors = storageService.getDoctors();
   const appointments = storageService.getAppointmentsByPatient(patient.id);
+  const settings = storageService.getSettings();
 
   const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string>('');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
@@ -102,18 +103,18 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ patient 
     return slots;
   }, [selectedDoctorId, selectedDate]);
 
-  // Calculate copay estimate
-  const estimatedCopay = useMemo(() => {
-    const baseFee = activeDoctor?.consultationFee || activeSpecialty?.baseFee || 20000;
-    const insuranceName = patient.insuranceName || '';
-    const settings = storageService.getSettings();
-    const matchedIns = settings.insurances.find(ins => ins.name.toLowerCase() === insuranceName.toLowerCase());
+  // Calculate live base fee & copay estimate using Admin-configured specialty pricing
+  const baseConsultationFee = useMemo(() => {
+    return activeSpecialty?.baseFee ?? activeDoctor?.consultationFee ?? settings.baseSpecialistConsultFee ?? 20000;
+  }, [activeSpecialty, activeDoctor, settings.baseSpecialistConsultFee]);
 
-    if (!insuranceName || !matchedIns) {
-      return baseFee; // Particular 100%
-    }
-    return Math.round((baseFee * matchedIns.copayPercentage) / 100);
-  }, [activeDoctor, activeSpecialty, patient.insuranceName]);
+  const estimatedCopay = useMemo(() => {
+    return storageService.calculateCopayAmount(
+      activeSpecialty?.id || activeDoctor?.specialtyId,
+      patient.insuranceName,
+      activeDoctor?.id
+    );
+  }, [activeSpecialty, activeDoctor, patient.insuranceName, settings]);
 
   const handleBookAppointment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,8 +323,12 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ patient 
             </div>
 
             {/* Summary & Copay banner */}
-            {activeDoctor && selectedTime && (
+            {activeDoctor && (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Arancel base de consulta ({activeSpecialty?.name || activeDoctor.specialtyName}):</span>
+                  <span className="font-semibold text-slate-800 tabular-nums">${baseConsultationFee.toLocaleString()}</span>
+                </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-500">Cobertura registrada:</span>
                   <span className="font-semibold text-slate-900">{patient.insuranceName || 'Particular (Sin obra social)'}</span>

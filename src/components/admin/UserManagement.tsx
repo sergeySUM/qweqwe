@@ -161,9 +161,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
     e.preventDefault();
 
     let specialtyName = undefined;
+    let specialtyBaseFee: number | undefined = undefined;
     if (formData.role === 'MEDICO' && formData.specialtyId) {
       const match = specialties.find(s => s.id === formData.specialtyId);
-      if (match) specialtyName = match.name;
+      if (match) {
+        specialtyName = match.name;
+        specialtyBaseFee = match.baseFee;
+      }
     }
 
     const trimmedPassword = formData.password?.trim();
@@ -181,7 +185,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onNavigateToRigh
       specialtyId: formData.role === 'MEDICO' ? formData.specialtyId : undefined,
       specialtyName: formData.role === 'MEDICO' ? specialtyName : undefined,
       medicalLicense: formData.role === 'MEDICO' ? formData.medicalLicense : undefined,
-      consultationFee: formData.role === 'MEDICO' ? Number(formData.consultationFee) : undefined,
+      consultationFee: formData.role === 'MEDICO' ? (specialtyBaseFee ?? Number(formData.consultationFee)) : undefined,
       insuranceName: formData.role === 'PACIENTE' ? formData.insuranceName : undefined,
       billingCuit: formData.billingCuit
     });

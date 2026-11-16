@@ -47,6 +47,26 @@ const STORAGE_KEYS = {
   DB_CLEAR_APTS_PAYMENTS_V1: 'medicore_apts_payments_cleared_v1'
 };
 
+type ServerDataMap = {
+  medicore_users: User[];
+  medicore_specialties: Specialty[];
+  medicore_appointments: Appointment[];
+  medicore_medical_records: MedicalRecord[];
+  medicore_evolutions: EvolutionNote[];
+  medicore_prescriptions: Prescription[];
+  medicore_lab_orders: LabOrder[];
+  medicore_schedules: DoctorSchedule[];
+  medicore_payments: PaymentTransaction[];
+  medicore_audit_logs: AuditLog[];
+  medicore_settings: ClinicSettings;
+};
+
+interface ServerStateResponse {
+  version: number;
+  updatedAt: string;
+  data: Partial<ServerDataMap>;
+}
+
 class HospitalStorageService {
   private users: User[] = [];
   private specialties: Specialty[] = [];
@@ -61,9 +81,20 @@ class HospitalStorageService {
   private settings: ClinicSettings = INITIAL_CLINIC_SETTINGS;
   private activeUserId: string | null = null; // Requiere autenticación
   private listeners: Set<() => void> = new Set();
+  private serverVersion = 0;
+  private hasInitialServerSync = false;
+  private isApplyingServerState = false;
+  private initialSyncPromise: Promise<void> | null = null;
+  private inFlightRefreshPromise: Promise<void> | null = null;
+  private pendingSyncPromises: Set<Promise<void>> = new Set();
+  private eventSource: EventSource | null = null;
+  private pollIntervalId: number | null = null;
+  private realtimeInitialized = false;
 
   constructor() {
     this.init();
+    this.connectRealTimeSync();
+    this.initialSyncPromise = this.refreshFromServer(true);
   }
 
   private init() {
@@ -233,14 +264,266 @@ class HospitalStorageService {
     }
   }
 
-  private persist(key: string, data: unknown) {
+  private saveLocalOnly(key: string, data: unknown) {
     try {
       localStorage.setItem(key, JSON.stringify(data));
-      // Intentar sincronización en Firestore de fondo de forma no bloqueante
-      this.syncToFirestore(key, data);
     } catch (e) {
-      console.warn('Storage persist error:', e);
+      console.warn('Storage local cache error:', e);
     }
+  }
+
+  private persist(key: string, data: unknown, options?: { skipServer?: boolean }) {
+    this.saveLocalOnly(key, data);
+    if (!options?.skipServer && !this.isApplyingServerState) {
+      this.trackSync(this.putCollectionToServer(key, data));
+      // Intentar sincronización en Firestore de fondo de forma no bloqueante
+      void this.syncToFirestore(key, data);
+    }
+  }
+
+  private trackSync(promise: Promise<void>): Promise<void> {
+    this.pendingSyncPromises.add(promise);
+    const wrapped = promise.finally(() => {
+      this.pendingSyncPromises.delete(promise);
+    });
+    return wrapped;
+  }
+
+  public async flushPendingSyncs(): Promise<void> {
+    while (this.pendingSyncPromises.size > 0) {
+      await Promise.allSettled(Array.from(this.pendingSyncPromises));
+    }
+  }
+
+  private async putCollectionToServer(key: string, value: unknown): Promise<void> {
+    try {
+      await fetch(`/api/hospital/collection/${encodeURIComponent(key)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+        keepalive: true
+      });
+    } catch {
+      // Non-blocking fallback when offline
+    }
+  }
+
+  private async upsertUserOnServer(user: User): Promise<void> {
+    try {
+      await fetch('/api/hospital/users/upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user }),
+        keepalive: true
+      });
+    } catch {
+      // Non-blocking fallback when offline
+    }
+  }
+
+  private async deleteUserOnServer(userId: string): Promise<void> {
+    try {
+      await fetch(`/api/hospital/users/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+        keepalive: true
+      });
+    } catch {
+      // Non-blocking fallback when offline
+    }
+  }
+
+  private async pushAuditLogToServer(log: AuditLog): Promise<void> {
+    try {
+      await fetch('/api/hospital/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ log }),
+        keepalive: true
+      });
+    } catch {
+      // Non-blocking fallback when offline
+    }
+  }
+
+  private async restoreBackupOnServer(data: Partial<ServerDataMap>): Promise<void> {
+    try {
+      await fetch('/api/hospital/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        keepalive: true
+      });
+    } catch {
+      // Non-blocking fallback when offline
+    }
+  }
+
+  private applyServerState(payload: ServerStateResponse) {
+    if (!payload || !payload.data) return;
+
+    this.isApplyingServerState = true;
+    try {
+      const data = payload.data;
+      if (Array.isArray(data.medicore_users)) {
+        this.users = data.medicore_users;
+        this.saveLocalOnly(STORAGE_KEYS.USERS, this.users);
+      }
+      if (Array.isArray(data.medicore_specialties)) {
+        this.specialties = data.medicore_specialties;
+        this.saveLocalOnly(STORAGE_KEYS.SPECIALTIES, this.specialties);
+      }
+      if (Array.isArray(data.medicore_appointments)) {
+        this.appointments = data.medicore_appointments;
+        this.saveLocalOnly(STORAGE_KEYS.APPOINTMENTS, this.appointments);
+      }
+      if (Array.isArray(data.medicore_medical_records)) {
+        this.records = data.medicore_medical_records;
+        this.saveLocalOnly(STORAGE_KEYS.RECORDS, this.records);
+      }
+      if (Array.isArray(data.medicore_evolutions)) {
+        this.evolutions = data.medicore_evolutions;
+        this.saveLocalOnly(STORAGE_KEYS.EVOLUTIONS, this.evolutions);
+      }
+      if (Array.isArray(data.medicore_prescriptions)) {
+        this.prescriptions = data.medicore_prescriptions;
+        this.saveLocalOnly(STORAGE_KEYS.PRESCRIPTIONS, this.prescriptions);
+      }
+      if (Array.isArray(data.medicore_lab_orders)) {
+        this.labOrders = data.medicore_lab_orders;
+        this.saveLocalOnly(STORAGE_KEYS.LAB_ORDERS, this.labOrders);
+      }
+      if (Array.isArray(data.medicore_schedules)) {
+        this.schedules = data.medicore_schedules;
+        this.saveLocalOnly(STORAGE_KEYS.SCHEDULES, this.schedules);
+      }
+      if (Array.isArray(data.medicore_payments)) {
+        this.payments = data.medicore_payments;
+        this.saveLocalOnly(STORAGE_KEYS.PAYMENTS, this.payments);
+      }
+      if (Array.isArray(data.medicore_audit_logs)) {
+        this.auditLogs = data.medicore_audit_logs;
+        this.saveLocalOnly(STORAGE_KEYS.AUDIT_LOGS, this.auditLogs);
+      }
+      if (data.medicore_settings) {
+        this.settings = data.medicore_settings;
+        this.saveLocalOnly(STORAGE_KEYS.SETTINGS, this.settings);
+      }
+
+      localStorage.setItem(STORAGE_KEYS.DB_PRUNE_V2, 'true');
+      localStorage.setItem(STORAGE_KEYS.DB_CLEAR_APTS_PAYMENTS_V1, 'true');
+      localStorage.setItem(STORAGE_KEYS.DB_CLEAR_PAYMENTS_V1, 'true');
+
+      if (this.activeUserId) {
+        const current = this.users.find(u => u.id === this.activeUserId);
+        if (!current || current.status !== 'ACTIVO') {
+          this.activeUserId = null;
+          localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
+        }
+      }
+
+      this.serverVersion = payload.version;
+      this.hasInitialServerSync = true;
+    } finally {
+      this.isApplyingServerState = false;
+    }
+
+    this.notify();
+  }
+
+  public async refreshFromServer(force = false): Promise<void> {
+    if (typeof window === 'undefined') return;
+    if (this.inFlightRefreshPromise) {
+      await this.inFlightRefreshPromise;
+      if (!force) return;
+    }
+
+    const run = async () => {
+      try {
+        const res = await fetch('/api/hospital/state', { cache: 'no-store' });
+        if (!res.ok) return;
+        const payload = (await res.json()) as ServerStateResponse;
+        if (!force && this.hasInitialServerSync && payload.version === this.serverVersion) {
+          return;
+        }
+        this.applyServerState(payload);
+      } catch {
+        // Ignore transient network errors; SSE / polling will retry
+      }
+    };
+
+    const promise = run().finally(() => {
+      if (this.inFlightRefreshPromise === promise) {
+        this.inFlightRefreshPromise = null;
+      }
+    });
+    this.inFlightRefreshPromise = promise;
+    await promise;
+  }
+
+  public async ensureSynced(force = false): Promise<void> {
+    if (force) {
+      await this.refreshFromServer(true);
+      return;
+    }
+    if (this.initialSyncPromise) {
+      await this.initialSyncPromise;
+    } else {
+      await this.refreshFromServer(false);
+    }
+  }
+
+  private connectRealTimeSync() {
+    if (typeof window === 'undefined' || this.realtimeInitialized) return;
+    this.realtimeInitialized = true;
+
+    if (typeof EventSource !== 'undefined') {
+      try {
+        const es = new EventSource('/api/hospital/stream');
+        this.eventSource = es;
+
+        const handleVersionEvent = (event: MessageEvent) => {
+          try {
+            const data = JSON.parse(event.data) as { version?: number };
+            if (
+              !this.hasInitialServerSync ||
+              (typeof data.version === 'number' && data.version !== this.serverVersion)
+            ) {
+              void this.refreshFromServer(true);
+            }
+          } catch {
+            void this.refreshFromServer(true);
+          }
+        };
+
+        es.addEventListener('connected', handleVersionEvent as EventListener);
+        es.addEventListener('sync', handleVersionEvent as EventListener);
+      } catch {
+        // Fallback polling below handles environments without SSE
+      }
+    }
+
+    // Periodic fallback sync & tab-focus sync for immediate visibility across normal/incognito windows
+    this.pollIntervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void this.refreshFromServer(false);
+      }
+    }, 4000);
+
+    window.addEventListener('focus', () => {
+      void this.refreshFromServer(false);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        void this.refreshFromServer(false);
+      }
+    });
+
+    window.addEventListener('storage', (e) => {
+      if (e.key && e.key.startsWith('medicore_') && e.key !== STORAGE_KEYS.ACTIVE_USER) {
+        void this.refreshFromServer(true);
+      }
+    });
   }
 
   private async syncToFirestore(collectionKey: string, data: unknown) {
@@ -337,7 +620,11 @@ class HospitalStorageService {
       userAgent: navigator.userAgent
     };
     this.auditLogs.unshift(newLog);
-    this.persist(STORAGE_KEYS.AUDIT_LOGS, this.auditLogs);
+    this.saveLocalOnly(STORAGE_KEYS.AUDIT_LOGS, this.auditLogs);
+    if (!this.isApplyingServerState) {
+      this.trackSync(this.pushAuditLogToServer(newLog));
+      void this.syncToFirestore(STORAGE_KEYS.AUDIT_LOGS, this.auditLogs);
+    }
     this.notify();
   }
 
@@ -408,14 +695,14 @@ class HospitalStorageService {
       };
       this.users.push(updatedUser);
 
-      // Si es paciente, inicializar su ficha médica
+      // Si es paciente, inicializar su ficha médica localmente (el backend la crea atómicamente en upsert)
       if (updatedUser.role === 'PACIENTE') {
-        this.initPatientMedicalRecord(updatedUser.id);
+        this.initPatientMedicalRecord(updatedUser.id, { syncServer: false });
       }
 
-      // Si es médico, inicializar su agenda
+      // Si es médico, inicializar su agenda localmente (el backend la crea atómicamente en upsert)
       if (updatedUser.role === 'MEDICO') {
-        this.initDoctorSchedule(updatedUser.id);
+        this.initDoctorSchedule(updatedUser.id, { syncServer: false });
       }
 
       this.addAuditLog({
@@ -427,7 +714,11 @@ class HospitalStorageService {
       });
     }
 
-    this.persist(STORAGE_KEYS.USERS, this.users);
+    this.saveLocalOnly(STORAGE_KEYS.USERS, this.users);
+    if (!this.isApplyingServerState) {
+      this.trackSync(this.upsertUserOnServer(updatedUser));
+      void this.syncToFirestore(STORAGE_KEYS.USERS, this.users);
+    }
     this.notify();
     return updatedUser;
   }
@@ -449,7 +740,11 @@ class HospitalStorageService {
         resourceId: userId,
         details: `Estado de cuenta de ${updated.name} cambiado a ${updated.status}`
       });
-      this.persist(STORAGE_KEYS.USERS, this.users);
+      this.saveLocalOnly(STORAGE_KEYS.USERS, this.users);
+      if (!this.isApplyingServerState) {
+        this.trackSync(this.upsertUserOnServer(updated));
+        void this.syncToFirestore(STORAGE_KEYS.USERS, this.users);
+      }
       this.notify();
     }
     return updated;
@@ -468,7 +763,7 @@ class HospitalStorageService {
           medicalLicense: newRole === 'MEDICO' ? (u.medicalLicense || 'MN 190.500') : u.medicalLicense
         };
         if (newRole === 'MEDICO') {
-          this.initDoctorSchedule(u.id);
+          this.initDoctorSchedule(u.id, { syncServer: false });
         }
         return updated;
       }
@@ -482,7 +777,11 @@ class HospitalStorageService {
         resourceId: userId,
         details: `Permisos y rol modificados por ${actor?.name || 'Administrador'}: ${updated.name} asignado al rol [${newRole}]${customNotes ? ` (${customNotes})` : ''}`
       });
-      this.persist(STORAGE_KEYS.USERS, this.users);
+      this.saveLocalOnly(STORAGE_KEYS.USERS, this.users);
+      if (!this.isApplyingServerState) {
+        this.trackSync(this.upsertUserOnServer(updated));
+        void this.syncToFirestore(STORAGE_KEYS.USERS, this.users);
+      }
       this.notify();
     }
     return updated;
@@ -514,10 +813,14 @@ class HospitalStorageService {
       details: `Eliminación definitiva de usuario de la base de datos: ${target.name} (${target.email} · ${target.role})`
     });
 
-    this.persist(STORAGE_KEYS.USERS, this.users);
-    this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
-    this.persist(STORAGE_KEYS.RECORDS, this.records);
-    this.persist(STORAGE_KEYS.SCHEDULES, this.schedules);
+    this.saveLocalOnly(STORAGE_KEYS.USERS, this.users);
+    this.saveLocalOnly(STORAGE_KEYS.APPOINTMENTS, this.appointments);
+    this.saveLocalOnly(STORAGE_KEYS.RECORDS, this.records);
+    this.saveLocalOnly(STORAGE_KEYS.SCHEDULES, this.schedules);
+    if (!this.isApplyingServerState) {
+      this.trackSync(this.deleteUserOnServer(userId));
+      void this.syncToFirestore(STORAGE_KEYS.USERS, this.users);
+    }
     this.notify();
     return { success: true };
   }
@@ -651,7 +954,10 @@ class HospitalStorageService {
     return record;
   }
 
-  private initPatientMedicalRecord(patientId: string): MedicalRecord {
+  private initPatientMedicalRecord(patientId: string, options?: { syncServer?: boolean }): MedicalRecord {
+    const existing = this.records.find(r => r.patientId === patientId);
+    if (existing) return existing;
+
     const newRecord: MedicalRecord = {
       id: `rec-${Date.now()}`,
       patientId,
@@ -668,7 +974,7 @@ class HospitalStorageService {
       lastUpdated: new Date().toISOString()
     };
     this.records.push(newRecord);
-    this.persist(STORAGE_KEYS.RECORDS, this.records);
+    this.persist(STORAGE_KEYS.RECORDS, this.records, { skipServer: options?.syncServer === false });
     return newRecord;
   }
 
@@ -773,7 +1079,10 @@ class HospitalStorageService {
     return sch;
   }
 
-  private initDoctorSchedule(doctorId: string): DoctorSchedule {
+  private initDoctorSchedule(doctorId: string, options?: { syncServer?: boolean }): DoctorSchedule {
+    const existing = this.schedules.find(s => s.doctorId === doctorId);
+    if (existing) return existing;
+
     const sch: DoctorSchedule = {
       doctorId,
       workingDays: [1, 2, 3, 4, 5],
@@ -784,7 +1093,7 @@ class HospitalStorageService {
       breakRanges: [{ start: '12:00', end: '13:00' }]
     };
     this.schedules.push(sch);
-    this.persist(STORAGE_KEYS.SCHEDULES, this.schedules);
+    this.persist(STORAGE_KEYS.SCHEDULES, this.schedules, { skipServer: options?.syncServer === false });
     return sch;
   }
 
@@ -853,6 +1162,31 @@ class HospitalStorageService {
     return [...this.specialties];
   }
 
+  public calculateCopayAmount(specialtyId?: string, insuranceName?: string, doctorId?: string): number {
+    const specialty = specialtyId ? this.specialties.find(s => s.id === specialtyId) : undefined;
+    const doctor = doctorId ? this.users.find(u => u.id === doctorId) : undefined;
+    const baseFee = specialty?.baseFee ?? doctor?.consultationFee ?? this.settings.baseSpecialistConsultFee ?? 20000;
+
+    if (!insuranceName) {
+      return baseFee;
+    }
+
+    const lower = insuranceName.trim().toLowerCase();
+    const firstWord = lower.split(/\s+/)[0] || '';
+    const matchedIns =
+      this.settings.insurances.find(ins => ins.name.toLowerCase() === lower) ||
+      this.settings.insurances.find(ins => {
+        const insLower = ins.name.toLowerCase();
+        return firstWord.length >= 4 && insLower.startsWith(firstWord);
+      });
+
+    if (!matchedIns) {
+      return baseFee;
+    }
+
+    return Math.round((baseFee * matchedIns.copayPercentage) / 100);
+  }
+
   public saveSpecialty(specialty: Omit<Specialty, 'id'> & { id?: string }): Specialty {
     let saved: Specialty;
     if (specialty.id) {
@@ -870,6 +1204,50 @@ class HospitalStorageService {
         id: `esp-${Date.now()}`
       };
       this.specialties.push(saved);
+    }
+
+    // Sincronizar honorario de médicos de esta especialidad con el nuevo arancel base
+    const updatedDoctors: User[] = [];
+    this.users = this.users.map(u => {
+      if (u.role === 'MEDICO' && u.specialtyId === saved.id && u.consultationFee !== saved.baseFee) {
+        const nextDoc: User = { ...u, consultationFee: saved.baseFee };
+        updatedDoctors.push(nextDoc);
+        return nextDoc;
+      }
+      return u;
+    });
+
+    if (updatedDoctors.length > 0) {
+      this.saveLocalOnly(STORAGE_KEYS.USERS, this.users);
+      if (!this.isApplyingServerState) {
+        updatedDoctors.forEach(docUser => {
+          this.trackSync(this.upsertUserOnServer(docUser));
+        });
+        void this.syncToFirestore(STORAGE_KEYS.USERS, this.users);
+      }
+    }
+
+    // Recalcular copago pendiente en turnos activos no pagados de esta especialidad
+    let appointmentsUpdated = false;
+    this.appointments = this.appointments.map(apt => {
+      if (
+        !apt.isPaid &&
+        apt.specialtyId === saved.id &&
+        apt.status !== 'CANCELADO' &&
+        apt.status !== 'FINALIZADO' &&
+        apt.status !== 'BLOQUEADO'
+      ) {
+        const nextCopay = this.calculateCopayAmount(saved.id, apt.insuranceName, apt.doctorId);
+        if (apt.copayAmount !== nextCopay) {
+          appointmentsUpdated = true;
+          return { ...apt, copayAmount: nextCopay };
+        }
+      }
+      return apt;
+    });
+
+    if (appointmentsUpdated) {
+      this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
     }
 
     this.addAuditLog({
@@ -936,17 +1314,35 @@ class HospitalStorageService {
         this.auditLogs = data.auditLogs || [];
         this.settings = data.settings || INITIAL_CLINIC_SETTINGS;
 
-        this.persist(STORAGE_KEYS.USERS, this.users);
-        this.persist(STORAGE_KEYS.SPECIALTIES, this.specialties);
-        this.persist(STORAGE_KEYS.APPOINTMENTS, this.appointments);
-        this.persist(STORAGE_KEYS.RECORDS, this.records);
-        this.persist(STORAGE_KEYS.EVOLUTIONS, this.evolutions);
-        this.persist(STORAGE_KEYS.PRESCRIPTIONS, this.prescriptions);
-        this.persist(STORAGE_KEYS.LAB_ORDERS, this.labOrders);
-        this.persist(STORAGE_KEYS.SCHEDULES, this.schedules);
-        this.persist(STORAGE_KEYS.PAYMENTS, this.payments);
-        this.persist(STORAGE_KEYS.AUDIT_LOGS, this.auditLogs);
-        this.persist(STORAGE_KEYS.SETTINGS, this.settings);
+        this.saveLocalOnly(STORAGE_KEYS.USERS, this.users);
+        this.saveLocalOnly(STORAGE_KEYS.SPECIALTIES, this.specialties);
+        this.saveLocalOnly(STORAGE_KEYS.APPOINTMENTS, this.appointments);
+        this.saveLocalOnly(STORAGE_KEYS.RECORDS, this.records);
+        this.saveLocalOnly(STORAGE_KEYS.EVOLUTIONS, this.evolutions);
+        this.saveLocalOnly(STORAGE_KEYS.PRESCRIPTIONS, this.prescriptions);
+        this.saveLocalOnly(STORAGE_KEYS.LAB_ORDERS, this.labOrders);
+        this.saveLocalOnly(STORAGE_KEYS.SCHEDULES, this.schedules);
+        this.saveLocalOnly(STORAGE_KEYS.PAYMENTS, this.payments);
+        this.saveLocalOnly(STORAGE_KEYS.AUDIT_LOGS, this.auditLogs);
+        this.saveLocalOnly(STORAGE_KEYS.SETTINGS, this.settings);
+
+        if (!this.isApplyingServerState) {
+          this.trackSync(
+            this.restoreBackupOnServer({
+              medicore_users: this.users,
+              medicore_specialties: this.specialties,
+              medicore_appointments: this.appointments,
+              medicore_medical_records: this.records,
+              medicore_evolutions: this.evolutions,
+              medicore_prescriptions: this.prescriptions,
+              medicore_lab_orders: this.labOrders,
+              medicore_schedules: this.schedules,
+              medicore_payments: this.payments,
+              medicore_audit_logs: this.auditLogs,
+              medicore_settings: this.settings
+            })
+          );
+        }
 
         this.addAuditLog({
           action: 'CAMBIO_CONFIGURACION',
@@ -967,6 +1363,7 @@ class HospitalStorageService {
   public resetToFactoryMockData() {
     localStorage.clear();
     this.init();
+    void this.refreshFromServer(true);
     this.notify();
   }
 }

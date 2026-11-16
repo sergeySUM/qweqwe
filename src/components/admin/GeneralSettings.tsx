@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Specialty, ClinicSettings } from '../../types/hospital';
 import { storageService } from '../../services/storageService';
 import { 
@@ -15,6 +15,12 @@ import {
 export const GeneralSettings: React.FC = () => {
   const [specialties, setSpecialties] = useState<Specialty[]>(() => storageService.getSpecialties());
   const [settings, setSettings] = useState<ClinicSettings>(() => storageService.getSettings());
+
+  useEffect(() => {
+    return storageService.subscribe(() => {
+      setSpecialties(storageService.getSpecialties());
+    });
+  }, []);
 
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [restoreStatus, setRestoreStatus] = useState<{ success?: boolean; message: string } | null>(null);
@@ -53,6 +59,7 @@ export const GeneralSettings: React.FC = () => {
 
   // Handle update specialty fee inline
   const handleUpdateSpecialtyFee = (id: string, newFee: number) => {
+    if (Number.isNaN(newFee) || newFee < 0) return;
     const sp = specialties.find(s => s.id === id);
     if (!sp) return;
     storageService.saveSpecialty({ ...sp, baseFee: newFee });

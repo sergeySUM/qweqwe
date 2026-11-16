@@ -441,7 +441,18 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser: _curren
                 <select
                   required
                   value={newAptData.patientId}
-                  onChange={e => setNewAptData(prev => ({ ...prev, patientId: e.target.value }))}
+                  onChange={e => {
+                    const patientId = e.target.value;
+                    const pac = patients.find(p => p.id === patientId);
+                    const doc = doctors.find(d => d.id === newAptData.doctorId);
+                    setNewAptData(prev => ({
+                      ...prev,
+                      patientId,
+                      copayAmount: doc
+                        ? storageService.calculateCopayAmount(doc.specialtyId, pac?.insuranceName, doc.id)
+                        : prev.copayAmount
+                    }));
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
                 >
                   <option value="">Seleccione paciente registrado...</option>
@@ -458,7 +469,18 @@ export const GlobalAgenda: React.FC<GlobalAgendaProps> = ({ currentUser: _curren
                 <select
                   required
                   value={newAptData.doctorId}
-                  onChange={e => setNewAptData(prev => ({ ...prev, doctorId: e.target.value }))}
+                  onChange={e => {
+                    const doctorId = e.target.value;
+                    const doc = doctors.find(d => d.id === doctorId);
+                    const pac = patients.find(p => p.id === newAptData.patientId);
+                    setNewAptData(prev => ({
+                      ...prev,
+                      doctorId,
+                      copayAmount: doc
+                        ? storageService.calculateCopayAmount(doc.specialtyId, pac?.insuranceName, doc.id)
+                        : prev.copayAmount
+                    }));
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
                 >
                   <option value="">Seleccione profesional...</option>

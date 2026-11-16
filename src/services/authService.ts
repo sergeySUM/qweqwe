@@ -45,15 +45,17 @@ class AuthService {
 
   private init() {
     try {
-      onAuthStateChanged(auth, (fbUser) => {
+      onAuthStateChanged(auth, async (fbUser) => {
         this.currentFirebaseUser = fbUser;
         if (!this.isManualAuthInProgress && fbUser && fbUser.email) {
+          await storageService.ensureSynced();
           const isGoogleProvider = fbUser.providerData.some(p => p.providerId === 'google.com');
           this.syncFirebaseUserWithHospital(
             fbUser,
             'PACIENTE',
             isGoogleProvider ? 'google' : 'local'
           );
+          await storageService.flushPendingSyncs();
         }
         this.notifyListeners();
       });
@@ -146,9 +148,11 @@ class AuthService {
       const fbUser = result.user;
       this.currentFirebaseUser = fbUser;
 
+      await storageService.ensureSynced(true);
       const hospitalUser = this.syncFirebaseUserWithHospital(fbUser, preferredRole, 'google');
 
       if (hospitalUser.status === 'SUSPENDIDO') {
+        await storageService.flushPendingSyncs();
         await this.logout();
         return {
           success: false,
@@ -163,6 +167,7 @@ class AuthService {
         resourceId: `google-auth-${fbUser.uid}`,
         details: `Inicio de sesión exitoso con cuenta Google: ${fbUser.displayName || fbUser.email} (${hospitalUser.role})`
       });
+      await storageService.flushPendingSyncs();
 
       return {
         success: true,
@@ -208,6 +213,7 @@ class AuthService {
       };
     }
 
+    await storageService.ensureSynced(true);
     const existingUsers = storageService.getUsers();
     const existingHospitalUser = existingUsers.find(u => u.email.toLowerCase() === email);
 
@@ -234,6 +240,7 @@ class AuthService {
       );
 
       if (hospitalUser.status === 'SUSPENDIDO') {
+        await storageService.flushPendingSyncs();
         await this.logout();
         return {
           success: false,
@@ -247,6 +254,7 @@ class AuthService {
         resourceId: `email-auth-${hospitalUser.id}`,
         details: `Inicio de sesión con correo y contraseña: ${hospitalUser.email} (${hospitalUser.role})`
       });
+      await storageService.flushPendingSyncs();
 
       return {
         success: true,
@@ -283,6 +291,7 @@ class AuthService {
               resourceId: `local-auth-${existingHospitalUser.id}`,
               details: `Inicio de sesión con correo y contraseña: ${existingHospitalUser.email} (${existingHospitalUser.role})`
             });
+            await storageService.flushPendingSyncs();
             return {
               success: true,
               user: sessionResult.user
@@ -353,6 +362,7 @@ class AuthService {
       };
     }
 
+    await storageService.ensureSynced(true);
     const existingUsers = storageService.getUsers();
     const duplicate = existingUsers.find(
       u => u.dni === dni || u.email.toLowerCase() === email
@@ -386,6 +396,7 @@ class AuthService {
         insuranceName: payload.insuranceName || 'Particular / Privado',
         insuranceNumber: payload.insuranceNumber
       });
+      await storageService.flushPendingSyncs();
 
       return {
         success: true,
@@ -435,6 +446,7 @@ class AuthService {
         });
 
         const sessionResult = storageService.setActiveUserId(newUser.id);
+        await storageService.flushPendingSyncs();
         if (sessionResult.success && sessionResult.user) {
           return {
             success: true,

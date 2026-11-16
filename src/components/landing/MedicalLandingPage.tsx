@@ -170,10 +170,32 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
   const specialties = storageService.getSpecialties();
   const settings = storageService.getSettings();
 
+  const resolveAdPriceLabel = (ad: ServiceAdItem): string => {
+    if (ad.id === 'ad-mri') return ad.priceLabel;
+    if (ad.id === 'ad-consult' && specialties.length > 0) {
+      const minFee = Math.min(...specialties.map(s => s.baseFee));
+      return `Desde $${minFee.toLocaleString('es-AR')}`;
+    }
+    if (ad.specialtyName) {
+      const matched = specialties.find(
+        s => s.name.toLowerCase() === ad.specialtyName!.toLowerCase()
+      );
+      if (matched) {
+        return `$${matched.baseFee.toLocaleString('es-AR')}`;
+      }
+    }
+    return ad.priceLabel;
+  };
+
+  const liveAds = SERVICE_ADS.map(ad => ({
+    ...ad,
+    priceLabel: resolveAdPriceLabel(ad)
+  }));
+
   const filteredAds =
     selectedCategory === 'Todos'
-      ? SERVICE_ADS
-      : SERVICE_ADS.filter(ad => ad.category === selectedCategory);
+      ? liveAds
+      : liveAds.filter(ad => ad.category === selectedCategory);
 
   const handleAdTrigger = (ad: ServiceAdItem) => {
     onSelectServiceAd({

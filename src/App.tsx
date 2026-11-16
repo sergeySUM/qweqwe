@@ -30,6 +30,7 @@ import { MedicalLandingPage, SelectedServiceAd } from './components/landing/Medi
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getActiveUser());
+  const [, setSyncTick] = useState(0);
   const [activeTab, setActiveTab] = useState<string>('rf07');
   const [targetPatientId, setTargetPatientId] = useState<string | undefined>(undefined);
   const [unauthView, setUnauthView] = useState<'landing' | 'register' | 'google'>(() =>
@@ -37,11 +38,12 @@ export default function App() {
   );
   const [selectedServiceAd, setSelectedServiceAd] = useState<SelectedServiceAd | null>(null);
 
-  // Subscribe to storage changes
+  // Subscribe to storage changes (local mutations and real-time cross-browser SSE sync)
   useEffect(() => {
     const unsubscribe = storageService.subscribe(() => {
       const updatedUser = storageService.getActiveUser();
       setCurrentUser(updatedUser);
+      setSyncTick(tick => tick + 1);
     });
     return unsubscribe;
   }, []);
