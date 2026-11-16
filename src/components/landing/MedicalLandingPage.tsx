@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
 import { storageService } from '../../services/storageService';
+import heroFacadeImg from '../../assets/images/hero_hospital_facade_1794518120710.jpg';
+import cardiologyImg from '../../assets/images/service_cardiology_1794518121250.jpg';
+import imagingMriImg from '../../assets/images/service_imaging_mri_1794518120796.jpg';
+import labCheckupImg from '../../assets/images/service_lab_checkup_1794518122789.jpg';
+import pediatricsCareImg from '../../assets/images/service_pediatrics_care_1794518122564.jpg';
+import ophthalmologyImg from '../../assets/images/service_ophthalmology_exam_1794852377594.jpg';
+import traumatologyImg from '../../assets/images/service_traumatology_rehab_1794852378819.jpg';
+import receptionLobbyImg from '../../assets/images/clinic_reception_lobby_1794852379718.jpg';
+import medicalTeamImg from '../../assets/images/medical_team_doctors_1794852380267.jpg';
+import dermatologySuiteImg from '../../assets/images/service_dermatology_suite_1794852379740.jpg';
 import {
   ArrowRight,
   Lock,
@@ -8,7 +18,8 @@ import {
   FlaskConical,
   Stethoscope,
   Eye,
-  Activity
+  Activity,
+  Building2
 } from 'lucide-react';
 
 export interface SelectedServiceAd {
@@ -41,7 +52,7 @@ interface ServiceAdItem {
   fallbackIcon: React.ReactNode;
 }
 
-const HERO_IMAGE = '/src/assets/images/hero_hospital_facade_1794518120710.jpg';
+const HERO_IMAGE = heroFacadeImg;
 
 const SERVICE_ADS: ServiceAdItem[] = [
   {
@@ -54,7 +65,7 @@ const SERVICE_ADS: ServiceAdItem[] = [
     priceLabel: '$25.000',
     coverageNote: 'Cobertura 100% OSDE 310+ y Swiss Medical',
     ctaLabel: 'Solicitar con registro',
-    image: '/src/assets/images/service_cardiology_1794518121250.jpg',
+    image: cardiologyImg,
     imageAlt: 'Sala moderna de diagnóstico cardiológico y ecocardiograma en MediCore',
     featuredSpan: true,
     specialtyName: 'Cardiología',
@@ -70,7 +81,7 @@ const SERVICE_ADS: ServiceAdItem[] = [
     priceLabel: '$42.000',
     coverageNote: 'Orden médica y turno directo tras el registro',
     ctaLabel: 'Reservar estudio',
-    image: '/src/assets/images/service_imaging_mri_1794518120796.jpg',
+    image: imagingMriImg,
     imageAlt: 'Resonador magnético 3T en sala revestida en madera clara',
     featuredSpan: false,
     specialtyName: 'Neurología',
@@ -86,7 +97,7 @@ const SERVICE_ADS: ServiceAdItem[] = [
     priceLabel: '$18.000',
     coverageNote: 'Resultados descargables en PDF en menos de 24 h',
     ctaLabel: 'Agendar chequeo',
-    image: '/src/assets/images/service_lab_checkup_1794518122789.jpg',
+    image: labCheckupImg,
     imageAlt: 'Laboratorio clínico y estación de medicina preventiva',
     featuredSpan: false,
     specialtyName: 'Clínica Médica',
@@ -102,7 +113,7 @@ const SERVICE_ADS: ServiceAdItem[] = [
     priceLabel: 'Desde $18.000',
     coverageNote: 'Pediatría, Dermatología, Clínica Médica y Traumatología',
     ctaLabel: 'Elegir especialista',
-    image: '/src/assets/images/service_pediatrics_care_1794518122564.jpg',
+    image: pediatricsCareImg,
     imageAlt: 'Consultorio luminoso de atención clínica y pediátrica',
     featuredSpan: true,
     specialtyName: 'Pediatría',
@@ -118,6 +129,8 @@ const SERVICE_ADS: ServiceAdItem[] = [
     priceLabel: '$23.000',
     coverageNote: 'Turnos matutinos y vespertinos disponibles',
     ctaLabel: 'Solicitar control visual',
+    image: ophthalmologyImg,
+    imageAlt: 'Consultorio oftalmológico equipado con lámpara de hendidura y escáner retinal digital',
     featuredSpan: false,
     specialtyName: 'Oftalmología',
     fallbackIcon: <Eye className="w-8 h-8 text-cyan-700" />
@@ -132,6 +145,8 @@ const SERVICE_ADS: ServiceAdItem[] = [
     priceLabel: '$24.000',
     coverageNote: 'Atención prioritaria para socios registrados',
     ctaLabel: 'Consultar disponibilidad',
+    image: traumatologyImg,
+    imageAlt: 'Especialista revisando estudios musculoesqueléticos junto al paciente en consultorio',
     featuredSpan: false,
     specialtyName: 'Traumatología y Ortopedia',
     fallbackIcon: <Activity className="w-8 h-8 text-cyan-700" />
@@ -233,6 +248,12 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
               Servicios
             </a>
             <a
+              href="#instalaciones"
+              className="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Instalaciones
+            </a>
+            <a
               href="#especialidades"
               className="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
@@ -243,12 +264,6 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
               className="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               Coberturas
-            </a>
-            <a
-              href="#testimonios"
-              className="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
-            >
-              Testimonios
             </a>
           </nav>
 
@@ -495,13 +510,156 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
           </div>
         </section>
 
+        {/* Facilities & Clinical Spaces Photo Gallery Section */}
+        <section id="instalaciones" className="border-t border-slate-200 bg-slate-50 py-14 lg:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-2 max-w-2xl">
+                <p className="text-xs font-medium text-cyan-800">
+                  02. Infraestructura Sanatorial y Equipo Médico
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 text-balance">
+                  Espacios diseñados para una atención clínica serena y precisa
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 max-w-sm">
+                Recorra nuestras áreas de admisión, consultorios ambulatorios y equipo médico. Seleccione cualquier espacio para registrarse.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* Main 16:9 Architectural Facility Showcase */}
+              <button
+                type="button"
+                onClick={() =>
+                  onSelectServiceAd({
+                    id: 'facility-lobby',
+                    title: 'Atención Presencial y Admisión Central MediCore',
+                    category: 'Consultorios',
+                    priceLabel: 'Turnos programados'
+                  })
+                }
+                className="group relative lg:col-span-7 rounded-xl overflow-hidden border border-slate-200 bg-slate-200 min-h-[300px] lg:min-h-[420px] text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700"
+              >
+                {!brokenImages['facility-lobby'] ? (
+                  <img
+                    src={receptionLobbyImg}
+                    alt="Atrio central y recepción moderna del Sanatorio Metropolitano MediCore"
+                    referrerPolicy="no-referrer"
+                    onError={() => handleImageError('facility-lobby')}
+                    className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-slate-800 to-cyan-900 flex flex-col items-center justify-center p-8 text-white gap-2">
+                    <Building2 className="w-10 h-10 text-cyan-200" />
+                    <span className="text-sm font-semibold">Recepción Central MediCore</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent" />
+                <div className="absolute bottom-0 inset-x-0 p-6 text-white space-y-1.5">
+                  <div className="text-xs text-cyan-200 font-medium">
+                    Sede Central · Av. Libertador 4890 · Admisión digitalizada
+                  </div>
+                  <div className="flex items-end justify-between gap-4">
+                    <p className="text-base sm:text-lg font-semibold leading-snug max-w-md">
+                      Recepción amplia con check-in prioritario para pacientes con turno registrado online
+                    </p>
+                    <span className="text-xs font-semibold bg-white/15 group-hover:bg-cyan-700 px-3 py-1.5 rounded-md whitespace-nowrap shrink-0 transition-colors">
+                      Registrarme →
+                    </span>
+                  </div>
+                </div>
+              </button>
+
+              {/* Right Column: Two 4:3 Clinical Showcase Cards */}
+              <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSelectServiceAd({
+                      id: 'facility-team',
+                      title: 'Atención con Staff Médico Especialista',
+                      category: 'Consultorios',
+                      priceLabel: 'Requiere registro'
+                    })
+                  }
+                  className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-200 h-56 lg:h-[198px] text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700"
+                >
+                  {!brokenImages['facility-team'] ? (
+                    <img
+                      src={medicalTeamImg}
+                      alt="Médicas especialistas de MediCore revisando historia clínica digital"
+                      referrerPolicy="no-referrer"
+                      onError={() => handleImageError('facility-team')}
+                      className="w-full h-full object-cover object-top transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-cyan-800 flex items-center justify-center text-white text-sm font-semibold">
+                      Equipo Médico Certificado
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/35 to-transparent" />
+                  <div className="absolute bottom-0 inset-x-0 p-4 text-white">
+                    <div className="text-[11px] text-cyan-200 font-medium">
+                      Staff Interdisciplinario · Historia Clínica Única
+                    </div>
+                    <div className="text-sm font-semibold mt-0.5 flex items-center justify-between gap-2">
+                      <span>Médicos de planta en 7 especialidades</span>
+                      <ArrowRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const derm = specialties.find(s => s.name.toLowerCase().includes('dermatolog'));
+                    onSelectServiceAd({
+                      id: 'facility-derm',
+                      title: 'Consultorio de Dermatología y Procedimientos Clínicos',
+                      category: 'Consultorios',
+                      priceLabel: derm ? `$${derm.baseFee.toLocaleString('es-AR')}` : '$22.000',
+                      specialtyName: 'Dermatología'
+                    });
+                  }}
+                  className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-200 h-56 lg:h-[198px] text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700"
+                >
+                  {!brokenImages['facility-derm'] ? (
+                    <img
+                      src={dermatologySuiteImg}
+                      alt="Consultorio luminoso de dermatología y medicina ambulatoria en MediCore"
+                      referrerPolicy="no-referrer"
+                      onError={() => handleImageError('facility-derm')}
+                      className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-cyan-800 flex items-center justify-center text-white text-sm font-semibold">
+                      Consultorios de Dermatología
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/35 to-transparent" />
+                  <div className="absolute bottom-0 inset-x-0 p-4 text-white">
+                    <div className="text-[11px] text-cyan-200 font-medium">
+                      Dermatología Clínica · Dermatoscopía Digital
+                    </div>
+                    <div className="text-sm font-semibold mt-0.5 flex items-center justify-between gap-2">
+                      <span>Salas ambulatorias equipadas con luz natural</span>
+                      <ArrowRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Specialties Directory Section (Live from hospital catalog, all clickable to register) */}
-        <section id="especialidades" className="border-t border-slate-200 bg-slate-50 py-14 lg:py-16">
+        <section id="especialidades" className="border-t border-slate-200 bg-white py-14 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div className="space-y-2 max-w-2xl">
                 <p className="text-xs font-medium text-cyan-800">
-                  02. Cartilla de Especialidades Médicas
+                  03. Cartilla de Especialidades Médicas
                 </p>
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 text-balance">
                   Turnos programados con arancel base transparente
@@ -558,13 +716,13 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
         </section>
 
         {/* Insurances & Proof Testimonials (Adjacent Claim-to-Proof) */}
-        <section id="coberturas" className="border-t border-slate-200 bg-white py-14 lg:py-16">
+        <section id="coberturas" className="border-t border-slate-200 bg-slate-50 py-14 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             {/* Accepted Insurances */}
             <div className="space-y-6">
               <div className="space-y-2 max-w-2xl">
                 <p className="text-xs font-medium text-cyan-800">
-                  03. Obras Sociales y Prepagas Adheridas
+                  04. Obras Sociales y Prepagas Adheridas
                 </p>
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 text-balance">
                   Validación inmediata de su cobertura al registrarse
@@ -591,7 +749,7 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
                             priceLabel: `${coveragePercent}% cobertura`
                           })
                         }
-                        className="p-5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-cyan-700/60 rounded-xl text-left transition-colors cursor-pointer group focus-visible:outline-2 focus-visible:outline-cyan-700"
+                        className="p-5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-cyan-700/60 rounded-xl text-left transition-colors cursor-pointer group focus-visible:outline-2 focus-visible:outline-cyan-700"
                       >
                         <div className="text-sm font-bold text-slate-900 group-hover:text-cyan-900">
                           {ins.name}
@@ -613,7 +771,7 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
             <div id="testimonios" className="pt-8 border-t border-slate-200 space-y-6">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-cyan-800">
-                  04. Experiencia de Pacientes Registrados
+                  05. Experiencia de Pacientes Registrados
                 </p>
                 <h3 className="text-xl font-bold tracking-tight text-slate-900">
                   Atención clínica respaldada por tiempos medibles
@@ -624,7 +782,7 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
                 {TESTIMONIALS.map(item => (
                   <blockquote
                     key={item.name}
-                    className="p-6 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between gap-4"
+                    className="p-6 bg-white border border-slate-200 rounded-xl flex flex-col justify-between gap-4"
                   >
                     <p className="text-sm text-slate-700 leading-relaxed">
                       “{item.quote}”
@@ -674,6 +832,7 @@ export const MedicalLandingPage: React.FC<MedicalLandingPageProps> = ({
 
           <div className="flex flex-wrap items-center gap-6">
             <a href="#servicios" className="hover:text-slate-900 transition-colors">Servicios</a>
+            <a href="#instalaciones" className="hover:text-slate-900 transition-colors">Instalaciones</a>
             <a href="#especialidades" className="hover:text-slate-900 transition-colors">Especialidades</a>
             <a href="#coberturas" className="hover:text-slate-900 transition-colors">Coberturas</a>
             <button
